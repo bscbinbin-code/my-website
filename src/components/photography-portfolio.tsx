@@ -18,9 +18,9 @@ type PortfolioPhoto = {
 
 const portfolioPhotos = photos as PortfolioPhoto[];
 
-function HudCorners({ className = "" }: { className?: string }) {
+function HudCorners() {
   return (
-    <span className={`photo-hud-corners ${className}`} aria-hidden="true">
+    <span className="photo-hud-corners" aria-hidden="true">
       <span />
       <span />
       <span />
@@ -32,6 +32,25 @@ function HudCorners({ className = "" }: { className?: string }) {
 export function PhotographyPortfolio() {
   const galleryRef = useRef<HTMLElement>(null);
   const heroPhotos = useMemo(() => portfolioPhotos.slice(0, 4), []);
+  const galleryPhotos = useMemo(() => {
+    const nextPhotos = [...portfolioPhotos];
+    const firstIndex = nextPhotos.findIndex((photo) => photo.id === 36);
+    const secondIndex = nextPhotos.findIndex((photo) => photo.id === 39);
+
+    if (firstIndex >= 0 && secondIndex >= 0) {
+      [nextPhotos[firstIndex], nextPhotos[secondIndex]] = [nextPhotos[secondIndex], nextPhotos[firstIndex]];
+    }
+
+    return nextPhotos;
+  }, []);
+  const featuredPhotoIds = useMemo(() => {
+    return new Set(
+      portfolioPhotos
+        .filter((photo) => photo.ratio >= 2.3 && ![11, 36].includes(photo.id))
+        .map((photo) => photo.id),
+    );
+  }, []);
+  const widePhotoIds = useMemo(() => new Set([11, 12, 20, 21]), []);
 
   useEffect(() => {
     const section = galleryRef.current;
@@ -96,38 +115,24 @@ export function PhotographyPortfolio() {
         </div>
       </section>
 
-      <section id="statement" className="photo-statement">
-        <p>
-          一组关于路途、城市、暗光和偶然瞬间的摄影记录。页面保留原网站的取景器语言和滚动节奏，
-          但把视觉中心交给你的照片。
-        </p>
-      </section>
-
       <div id="locations">
         <TubeTextScroll />
       </div>
 
-      <section id="work" className="photo-work-intro">
-        <HudCorners className="photo-work-hud" />
-        <div className="photo-work-title">
-          SELECTED
-          <br />
-          WORK
-        </div>
-      </section>
-
       <section className="photo-gallery-scene" ref={galleryRef}>
         <div className="photo-gallery-bg" aria-hidden="true" />
         <div className="photo-gallery">
-          {portfolioPhotos.map((photo, index) => (
+          {galleryPhotos.map((photo, index) => (
             <figure
-              className={`photo-card is-${photo.orientation}`}
+              className={`photo-card is-${photo.orientation}${featuredPhotoIds.has(photo.id) ? " is-featured" : ""}${widePhotoIds.has(photo.id) ? " is-wide" : ""}`}
               key={photo.src}
               style={
                 {
                   "--photo-drift": "0px",
                   "--image-drift": "0px",
                   "--photo-delay": `${Math.min(index, 12) * 42}ms`,
+                  "--photo-ratio": photo.ratio,
+                  "--photo-stagger": `${[-18, 22, -6, 34, 4, 26][index % 6]}px`,
                 } as CSSProperties
               }
             >
@@ -141,7 +146,7 @@ export function PhotographyPortfolio() {
                 <span className="photo-card-scan" aria-hidden="true" />
               </div>
               <figcaption>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+                <span>{String(photo.id).padStart(2, "0")}</span>
                 <strong>{photo.originalName.replace(/\.jpg$/i, "")}</strong>
               </figcaption>
             </figure>

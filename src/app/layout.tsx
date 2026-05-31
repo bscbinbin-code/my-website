@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Desktop Photo Home",
+  title: "Photo Archive",
   description:
-    "A desktop-inspired personal photography homepage.",
+    "A personal photography archive with immersive scrolling gallery.",
   openGraph: {
-    title: "Desktop Photo Home",
-    description: "A desktop-inspired personal photography homepage.",
+    title: "Photo Archive",
+    description: "A personal photography archive with immersive scrolling gallery.",
     images: ["/portfolio/desktop-bg.jpg"],
   },
 };

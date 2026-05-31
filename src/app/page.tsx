@@ -1,5 +1,5 @@
-import { DesktopHome } from "@/components/desktop-home";
+import { PhotographyPortfolio } from "@/components/photography-portfolio";
 
 export default function Home() {
-  return <DesktopHome />;
+  return <PhotographyPortfolio />;
 }
