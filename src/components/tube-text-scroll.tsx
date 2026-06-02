@@ -1,13 +1,98 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
-const cityNames = ["广州", "厦门", "温州", "北海"];
+const cityNames = [
+  { en: "GUANGZHOU", zh: "广州" },
+  { en: "WENZHOU", zh: "温州" },
+  { en: "XIAMEN", zh: "厦门" },
+  { en: "BEIHAI", zh: "北海" },
+];
+const clearTextFilter = "blur(0px) contrast(1)";
+const meltTextFilter = "url(#photo-tube-melt) blur(30px) contrast(1.85)";
+const clearGlowFilter = "blur(18px) contrast(1.25) saturate(1.35)";
+const meltGlowFilter = "url(#photo-tube-melt) blur(48px) contrast(1.9) saturate(1.5)";
+const clearShadow =
+  "0 0 1px rgb(8 9 10 / 0.36), 0 0 22px rgb(118 16 36 / 0.78), 0 0 56px rgb(242 48 84 / 0.56)";
+const meltShadow =
+  "0 0 22px rgb(8 9 10 / 0.98), 0 0 72px rgb(118 16 36 / 1), 0 0 150px rgb(242 48 84 / 0.94)";
+
+type LetterNode = {
+  char: string;
+  glow: HTMLSpanElement;
+  text: HTMLSpanElement;
+};
+
+function getLetterAdvance(char: string, fontSize: number) {
+  const wideLetters = new Set(["M", "W"]);
+  const narrowLetters = new Set(["I"]);
+  const semiWideLetters = new Set(["G", "O", "Q", "U"]);
+
+  if (wideLetters.has(char)) return fontSize * 0.72;
+  if (narrowLetters.has(char)) return fontSize * 0.28;
+  if (semiWideLetters.has(char)) return fontSize * 0.64;
+  return fontSize * 0.56;
+}
+
+function getPositions(word: string, fontSize: number) {
+  const chars = [...word];
+  const gap = fontSize * 0.16;
+  const advances = chars.map((char) => getLetterAdvance(char, fontSize));
+  const totalWidth = advances.reduce((sum, advance) => sum + advance, 0) + gap * Math.max(0, chars.length - 1);
+  let cursor = -totalWidth / 2;
+
+  return advances.map((advance) => {
+    const center = cursor + advance / 2;
+    cursor += advance + gap;
+    return center;
+  });
+}
+
+function matchSharedLetters(current: string, next: string) {
+  const usedNext = new Set<number>();
+  const pairs: Array<{ currentIndex: number; nextIndex: number }> = [];
+
+  [...current].forEach((char, currentIndex) => {
+    let bestNextIndex = -1;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    [...next].forEach((nextChar, nextIndex) => {
+      if (char !== nextChar || usedNext.has(nextIndex)) return;
+
+      const distance = Math.abs(currentIndex - nextIndex);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestNextIndex = nextIndex;
+      }
+    });
+
+    if (bestNextIndex >= 0) {
+      usedNext.add(bestNextIndex);
+      pairs.push({ currentIndex, nextIndex: bestNextIndex });
+    }
+  });
+
+  return pairs;
+}
+
+function createLetter(char: string) {
+  const glow = document.createElement("span");
+  const text = document.createElement("span");
+
+  glow.className = "photo-tube-letter photo-tube-letter--glow";
+  text.className = "photo-tube-letter photo-tube-letter--text";
+  glow.textContent = char;
+  text.textContent = char;
+
+  return { char, glow, text };
+}
 
 export function TubeTextScroll() {
   const wrapperRef = useRef<HTMLElement>(null);
-  const textWrapperRef = useRef<HTMLUListElement>(null);
-  const items = useMemo(() => [...cityNames, ...cityNames, ...cityNames], []);
+  const textRef = useRef<HTMLDivElement>(null);
+  const captionRef = useRef<HTMLDivElement>(null);
+  const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
+  const displacementRef = useRef<SVGFEDisplacementMapElement>(null);
 
   useEffect(() => {
     let cleanup = () => {};
@@ -15,8 +100,11 @@ export function TubeTextScroll() {
 
     const init = async () => {
       const wrapper = wrapperRef.current;
-      const textWrapper = textWrapperRef.current;
-      if (!wrapper || !textWrapper) return;
+      const text = textRef.current;
+      const caption = captionRef.current;
+      const turbulence = turbulenceRef.current;
+      const displacement = displacementRef.current;
+      if (!wrapper || !text || !caption || !turbulence || !displacement) return;
 
       const [{ gsap }, { ScrollTrigger }] = await Promise.all([
         import("gsap"),
@@ -24,44 +112,189 @@ export function TubeTextScroll() {
       ]);
 
       if (cancelled) return;
-
       gsap.registerPlugin(ScrollTrigger);
 
-      const textItems = [...textWrapper.querySelectorAll<HTMLElement>(".photo-tube-item")];
-      const setPositions = () => {
-        const baseSize = Math.min(window.innerWidth, window.innerHeight);
-        const radius = baseSize * 0.4;
-        const spacing = 360 / textItems.length;
+      const ctx = gsap.context(() => {
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        let cityIndex = 0;
+        let letters: LetterNode[] = [];
+        let timer: gsap.core.Tween | undefined;
 
-        textItems.forEach((item, index) => {
-          const angle = (index * spacing * Math.PI) / 180;
-          const x = Math.sin(angle) * radius;
-          const z = Math.cos(angle) * radius;
-          const rotationY = index * spacing;
+        const fontSize = () => Number.parseFloat(window.getComputedStyle(text).fontSize);
 
-          item.style.transform = `translate3d(${x}px, -50%, ${z}px) rotateY(${rotationY}deg)`;
-        });
-      };
+        const setMelt = (amount: number) => {
+          gsap.set(displacement, { attr: { scale: amount } });
+          gsap.set(turbulence, {
+            attr: { baseFrequency: amount > 0 ? "0.046 0.092" : "0.012 0.026" },
+          });
+        };
 
-      setPositions();
+        const setLetterClear = (letter: LetterNode, x: number) => {
+          gsap.set(letter.text, {
+            filter: clearTextFilter,
+            opacity: 1,
+            scale: 1,
+            textShadow: clearShadow,
+            x,
+            xPercent: -50,
+            yPercent: -50,
+          });
+          gsap.set(letter.glow, {
+            filter: clearGlowFilter,
+            opacity: 1,
+            scale: 1,
+            x,
+            xPercent: -50,
+            yPercent: -50,
+          });
+        };
 
-      const trigger = ScrollTrigger.create({
-        trigger: wrapper,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: 1,
-        onUpdate: (self) => {
-          const rotation = self.progress * 360;
-          textWrapper.style.transform = `rotateZ(15deg) rotateY(${rotation}deg)`;
-        },
-      });
+        const mountWord = (word: string) => {
+          text.replaceChildren();
+          const positions = getPositions(word, fontSize());
+          letters = [...word].map((char, index) => {
+            const letter = createLetter(char);
+            text.append(letter.glow, letter.text);
+            setLetterClear(letter, positions[index]);
+            return letter;
+          });
+          setMelt(0);
+        };
 
-      window.addEventListener("resize", setPositions);
+        const transition = () => {
+          const currentWord = cityNames[cityIndex].en;
+          const nextIndex = (cityIndex + 1) % cityNames.length;
+          const nextWord = cityNames[nextIndex].en;
+          const nextPositions = getPositions(nextWord, fontSize());
+          const pairs = matchSharedLetters(currentWord, nextWord);
+          const sharedCurrent = new Set(pairs.map((pair) => pair.currentIndex));
+          const sharedNext = new Set(pairs.map((pair) => pair.nextIndex));
+          const outgoing = letters.filter((_, index) => !sharedCurrent.has(index));
+          const incoming = [...nextWord].map((char, index) => {
+            if (sharedNext.has(index)) return null;
+            const letter = createLetter(char);
+            text.append(letter.glow, letter.text);
+            gsap.set(letter.text, {
+              filter: meltTextFilter,
+              opacity: 0,
+              scale: 1.12,
+              textShadow: meltShadow,
+              x: nextPositions[index],
+              xPercent: -50,
+              yPercent: -50,
+            });
+            gsap.set(letter.glow, {
+              filter: meltGlowFilter,
+              opacity: 0,
+              scale: 1.36,
+              x: nextPositions[index],
+              xPercent: -50,
+              yPercent: -50,
+            });
+            return letter;
+          });
 
-      cleanup = () => {
-        trigger.kill();
-        window.removeEventListener("resize", setPositions);
-      };
+          const tl = gsap.timeline({
+            onComplete: () => {
+              cityIndex = nextIndex;
+              mountWord(nextWord);
+              caption.textContent = cityNames[cityIndex].zh;
+              gsap.set(caption, { filter: "blur(0px)", opacity: 1, y: 0 });
+              timer = gsap.delayedCall(2.25, transition);
+            },
+          });
+
+          tl.to(displacement, { attr: { scale: 46 }, duration: 0.62, ease: "power2.inOut" })
+            .to(turbulence, { attr: { baseFrequency: "0.052 0.098" }, duration: 0.62, ease: "power2.inOut" }, "<")
+            .to(caption, {
+              filter: "blur(14px)",
+              opacity: 0.18,
+              y: 8,
+              duration: 0.48,
+              ease: "power2.inOut",
+            }, "<")
+            .to(
+              outgoing.flatMap((letter) => [letter.text, letter.glow]),
+              {
+                filter: (index) => (index % 2 === 0 ? meltTextFilter : meltGlowFilter),
+                opacity: (index) => (index % 2 === 0 ? 0.08 : 0.64),
+                scale: (index) => (index % 2 === 0 ? 1.14 : 1.42),
+                textShadow: meltShadow,
+                duration: 0.7,
+                ease: "power2.inOut",
+                stagger: 0.018,
+              },
+              "<",
+            );
+
+          tl.call(() => {
+            caption.textContent = cityNames[nextIndex].zh;
+          }, undefined, ">-=0.28");
+
+          pairs.forEach((pair) => {
+            const letter = letters[pair.currentIndex];
+            tl.to(
+              [letter.text, letter.glow],
+              {
+                x: nextPositions[pair.nextIndex],
+                filter: (index) => (index === 0 ? clearTextFilter : clearGlowFilter),
+                opacity: (index) => (index === 0 ? 1 : 1),
+                textShadow: clearShadow,
+                duration: 0.78,
+                ease: "power2.inOut",
+              },
+              "<",
+            );
+          });
+
+          tl.to(
+            incoming.flatMap((letter) => (letter ? [letter.text, letter.glow] : [])),
+            {
+              filter: (index) => (index % 2 === 0 ? clearTextFilter : clearGlowFilter),
+              opacity: 1,
+              scale: 1,
+              textShadow: clearShadow,
+              duration: 0.68,
+              ease: "power2.out",
+              stagger: 0.018,
+            },
+            ">-=0.5",
+          )
+            .to(caption, {
+              filter: "blur(0px)",
+              opacity: 1,
+              y: 0,
+              duration: 0.62,
+              ease: "power2.out",
+            }, "<")
+            .to(displacement, { attr: { scale: 0 }, duration: 0.72, ease: "power2.out" }, "<")
+            .to(turbulence, { attr: { baseFrequency: "0.012 0.026" }, duration: 0.72, ease: "power2.out" }, "<");
+        };
+
+        gsap.set(text, { xPercent: -50, yPercent: -50 });
+        gsap.set(caption, { xPercent: -50, opacity: 1, filter: "blur(0px)" });
+        caption.textContent = cityNames[0].zh;
+        mountWord(cityNames[0].en);
+
+        if (!reduceMotion) {
+          timer = gsap.delayedCall(2.25, transition);
+
+          gsap.to(text, {
+            filter: "blur(1px)",
+            ease: "none",
+            scrollTrigger: {
+              trigger: wrapper,
+              start: "top bottom",
+              end: "bottom top",
+              scrub: 1.1,
+            },
+          });
+        }
+
+        return () => timer?.kill();
+      }, wrapper);
+
+      cleanup = () => ctx.revert();
     };
 
     init();
@@ -73,14 +306,29 @@ export function TubeTextScroll() {
   }, []);
 
   return (
-    <section className="photo-tube-section" ref={wrapperRef} aria-label="城市滚动文字动画">
-      <ul className="photo-tube-text" ref={textWrapperRef}>
-        {items.map((city, index) => (
-          <li className="photo-tube-item" key={`${city}-${index}`}>
-            {city}
-          </li>
-        ))}
-      </ul>
+    <section className="photo-tube-section" ref={wrapperRef} aria-label="City motion text">
+      <svg className="photo-tube-filter" aria-hidden="true" focusable="false">
+        <filter id="photo-tube-melt">
+          <feTurbulence
+            ref={turbulenceRef}
+            type="fractalNoise"
+            baseFrequency="0.012 0.026"
+            numOctaves="2"
+            seed="8"
+            result="noise"
+          />
+          <feDisplacementMap
+            ref={displacementRef}
+            in="SourceGraphic"
+            in2="noise"
+            scale="0"
+            xChannelSelector="R"
+            yChannelSelector="G"
+          />
+        </filter>
+      </svg>
+      <div className="photo-tube-text" ref={textRef} aria-label="GUANGZHOU WENZHOU XIAMEN BEIHAI" />
+      <div className="photo-tube-caption" ref={captionRef} aria-hidden="true" />
     </section>
   );
 }

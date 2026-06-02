@@ -1,7 +1,7 @@
 param(
-  [string]$SourceDir = "F:\Desktop\web\Photos\f",
-  [string]$OutputDir = "F:\Desktop\web\ai-website-cloner-template\public\portfolio\photos",
-  [string]$ManifestPath = "F:\Desktop\web\ai-website-cloner-template\src\data\portfolio-photos.json",
+  [string]$SourceDir = "F:\Desktop\web-black\Photos\f",
+  [string]$OutputDir = "F:\Desktop\web-black\public\portfolio\photos",
+  [string]$ManifestPath = "F:\Desktop\web-black\src\data\portfolio-photos.json",
   [int]$MaxLongEdge = 2200,
   [long]$JpegQuality = 84
 )
@@ -26,12 +26,13 @@ $index = 0
 
 Get-ChildItem -LiteralPath $SourceDir -File |
   Where-Object { $_.Extension -match "^\.(jpg|jpeg)$" } |
-  Sort-Object Name |
+  Sort-Object @{ Expression = { $_.BaseName -replace "[\d\s].*$", "" } }, @{ Expression = { if ($_.BaseName -match "\d+") { [int]$Matches[0] } else { 0 } } }, Name |
   ForEach-Object {
     $index++
     $safeBase = $_.BaseName -replace "[^\w.-]+", "-"
     $fileName = "{0:D2}-{1}.jpg" -f $index, $safeBase
     $target = Join-Path $OutputDir $fileName
+    $city = ($_.BaseName -replace "[\d\s].*$", "").Trim()
 
     $sourceImage = [System.Drawing.Image]::FromFile($_.FullName)
     try {
@@ -59,8 +60,9 @@ Get-ChildItem -LiteralPath $SourceDir -File |
 
       $items += [PSCustomObject]@{
         id = $index
-        title = ($_.BaseName -replace "[-_]+", " ").ToUpperInvariant()
+        title = $city
         originalName = $_.Name
+        city = $city
         src = "/portfolio/photos/$fileName"
         width = $width
         height = $height
