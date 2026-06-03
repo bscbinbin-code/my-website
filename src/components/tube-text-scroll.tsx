@@ -170,6 +170,10 @@ export function TubeTextScroll() {
           const sharedCurrent = new Set(pairs.map((pair) => pair.currentIndex));
           const sharedNext = new Set(pairs.map((pair) => pair.nextIndex));
           const outgoing = letters.filter((_, index) => !sharedCurrent.has(index));
+          const sharedTargets = pairs.flatMap((pair) => {
+            const letter = letters[pair.currentIndex];
+            return [letter.text, letter.glow];
+          });
           const incoming = [...nextWord].map((char, index) => {
             if (sharedNext.has(index)) return null;
             const letter = createLetter(char);
@@ -193,6 +197,7 @@ export function TubeTextScroll() {
             });
             return letter;
           });
+          const incomingTargets = incoming.flatMap((letter) => (letter ? [letter.text, letter.glow] : []));
 
           const tl = gsap.timeline({
             onComplete: () => {
@@ -248,27 +253,39 @@ export function TubeTextScroll() {
           });
 
           tl.to(
-            incoming.flatMap((letter) => (letter ? [letter.text, letter.glow] : [])),
+            incomingTargets,
             {
               filter: (index) => (index % 2 === 0 ? clearTextFilter : clearGlowFilter),
               opacity: 1,
               scale: 1,
               textShadow: clearShadow,
-              duration: 0.68,
-              ease: "power2.out",
+              duration: 0.86,
+              ease: "power3.out",
               stagger: 0.018,
             },
-            ">-=0.5",
+            ">-=0.54",
           )
             .to(caption, {
               filter: "blur(0px)",
               opacity: 1,
               y: 0,
-              duration: 0.62,
-              ease: "power2.out",
+              duration: 0.78,
+              ease: "power3.out",
             }, "<")
-            .to(displacement, { attr: { scale: 0 }, duration: 0.72, ease: "power2.out" }, "<")
-            .to(turbulence, { attr: { baseFrequency: "0.012 0.026" }, duration: 0.72, ease: "power2.out" }, "<");
+            .to(displacement, { attr: { scale: 0 }, duration: 0.96, ease: "power3.out" }, "<")
+            .to(turbulence, { attr: { baseFrequency: "0.012 0.026" }, duration: 0.96, ease: "power3.out" }, "<")
+            .to(
+              [...sharedTargets, ...incomingTargets],
+              {
+                filter: (index) => (index % 2 === 0 ? clearTextFilter : clearGlowFilter),
+                opacity: 1,
+                scale: 1,
+                textShadow: clearShadow,
+                duration: 0.24,
+                ease: "sine.out",
+              },
+              ">-=0.18",
+            );
         };
 
         gsap.set(text, { xPercent: -50, yPercent: -50 });
