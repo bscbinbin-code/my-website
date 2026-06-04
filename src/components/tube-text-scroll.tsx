@@ -90,6 +90,7 @@ function createLetter(char: string) {
 export function TubeTextScroll() {
   const wrapperRef = useRef<HTMLElement>(null);
   const textRef = useRef<HTMLDivElement>(null);
+  const shotLabelRef = useRef<HTMLDivElement>(null);
   const captionRef = useRef<HTMLDivElement>(null);
   const turbulenceRef = useRef<SVGFETurbulenceElement>(null);
   const displacementRef = useRef<SVGFEDisplacementMapElement>(null);
@@ -101,10 +102,11 @@ export function TubeTextScroll() {
     const init = async () => {
       const wrapper = wrapperRef.current;
       const text = textRef.current;
+      const shotLabel = shotLabelRef.current;
       const caption = captionRef.current;
       const turbulence = turbulenceRef.current;
       const displacement = displacementRef.current;
-      if (!wrapper || !text || !caption || !turbulence || !displacement) return;
+      if (!wrapper || !text || !shotLabel || !caption || !turbulence || !displacement) return;
 
       const [{ gsap }, { ScrollTrigger }] = await Promise.all([
         import("gsap"),
@@ -204,17 +206,17 @@ export function TubeTextScroll() {
               cityIndex = nextIndex;
               mountWord(nextWord);
               caption.textContent = cityNames[cityIndex].zh;
-              gsap.set(caption, { filter: "blur(0px)", opacity: 1, y: 0 });
+              gsap.set([shotLabel, caption], { filter: "blur(0px)", opacity: 1, y: 0 });
               timer = gsap.delayedCall(2.25, transition);
             },
           });
 
           tl.to(displacement, { attr: { scale: 46 }, duration: 0.62, ease: "power2.inOut" })
             .to(turbulence, { attr: { baseFrequency: "0.052 0.098" }, duration: 0.62, ease: "power2.inOut" }, "<")
-            .to(caption, {
+            .to([shotLabel, caption], {
               filter: "blur(14px)",
               opacity: 0.18,
-              y: 8,
+              y: (index) => (index === 0 ? -8 : 8),
               duration: 0.48,
               ease: "power2.inOut",
             }, "<")
@@ -265,7 +267,7 @@ export function TubeTextScroll() {
             },
             ">-=0.54",
           )
-            .to(caption, {
+            .to([shotLabel, caption], {
               filter: "blur(0px)",
               opacity: 1,
               y: 0,
@@ -289,7 +291,7 @@ export function TubeTextScroll() {
         };
 
         gsap.set(text, { xPercent: -50, yPercent: -50 });
-        gsap.set(caption, { xPercent: -50, opacity: 1, filter: "blur(0px)" });
+        gsap.set([shotLabel, caption], { xPercent: -50, opacity: 1, filter: "blur(0px)" });
         caption.textContent = cityNames[0].zh;
         mountWord(cityNames[0].en);
 
@@ -344,6 +346,9 @@ export function TubeTextScroll() {
           />
         </filter>
       </svg>
+      <div className="photo-tube-shot-label" ref={shotLabelRef} aria-hidden="true">
+        Shot in
+      </div>
       <div className="photo-tube-text" ref={textRef} aria-label="GUANGZHOU WENZHOU XIAMEN BEIHAI" />
       <div className="photo-tube-caption" ref={captionRef} aria-hidden="true" />
     </section>
