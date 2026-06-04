@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
+import NextImage from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import photos from "@/data/portfolio-photos.json";
 import { TubeTextScroll } from "@/components/tube-text-scroll";
@@ -34,8 +35,35 @@ type PhotoCoordinates = {
   longitude: number;
 };
 
+type SocialQrCard = {
+  id: "rednote" | "douyin";
+  label: string;
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+};
+
 const portfolioPhotos = photos as PortfolioPhoto[];
 const fallbackPalette = ["#d8d8d2", "#8f9795", "#242827"];
+const socialQrCards: SocialQrCard[] = [
+  {
+    id: "rednote",
+    label: "REDNOTE",
+    src: "/portfolio/social/rednote-qr.jpg",
+    alt: "BIN Rednote QR code",
+    width: 1166,
+    height: 1592,
+  },
+  {
+    id: "douyin",
+    label: "DOUYIN",
+    src: "/portfolio/social/douyin-qr.png",
+    alt: "BIN Douyin QR code",
+    width: 1073,
+    height: 1466,
+  },
+];
 
 const galleryLayoutPattern = [
   { gridColumn: "1 / span 4", offset: 0, width: 96, shift: -2, tilt: -0.08 },
@@ -74,42 +102,6 @@ function getPhotoCoordinates(photo: PortfolioPhoto): PhotoCoordinates | null {
   if (latitude === undefined || longitude === undefined) return null;
 
   return { latitude, longitude };
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-const photoCoordinateBounds = portfolioPhotos.reduce(
-  (bounds, photo) => {
-    const coordinates = getPhotoCoordinates(photo);
-    if (!coordinates) return bounds;
-
-    return {
-      minLatitude: Math.min(bounds.minLatitude, coordinates.latitude),
-      maxLatitude: Math.max(bounds.maxLatitude, coordinates.latitude),
-      minLongitude: Math.min(bounds.minLongitude, coordinates.longitude),
-      maxLongitude: Math.max(bounds.maxLongitude, coordinates.longitude),
-    };
-  },
-  {
-    minLatitude: Number.POSITIVE_INFINITY,
-    maxLatitude: Number.NEGATIVE_INFINITY,
-    minLongitude: Number.POSITIVE_INFINITY,
-    maxLongitude: Number.NEGATIVE_INFINITY,
-  },
-);
-
-function getMapPointStyle(coordinates: PhotoCoordinates): CSSProperties {
-  const longitudeRange = Math.max(0.001, photoCoordinateBounds.maxLongitude - photoCoordinateBounds.minLongitude);
-  const latitudeRange = Math.max(0.001, photoCoordinateBounds.maxLatitude - photoCoordinateBounds.minLatitude);
-  const x = ((coordinates.longitude - photoCoordinateBounds.minLongitude) / longitudeRange) * 100;
-  const y = 100 - ((coordinates.latitude - photoCoordinateBounds.minLatitude) / latitudeRange) * 100;
-
-  return {
-    "--map-point-x": `${clamp(x, 8, 92)}%`,
-    "--map-point-y": `${clamp(y, 8, 92)}%`,
-  } as CSSProperties;
 }
 
 function rgbToHex(red: number, green: number, blue: number) {
@@ -220,22 +212,84 @@ function HeroHud() {
   );
 }
 
+function getMapEmbedUrl({ latitude, longitude }: PhotoCoordinates) {
+  const latitudeSpan = 0.018;
+  const longitudeSpan = 0.026;
+  const bounds = [
+    longitude - longitudeSpan,
+    latitude - latitudeSpan,
+    longitude + longitudeSpan,
+    latitude + latitudeSpan,
+  ]
+    .map((value) => value.toFixed(6))
+    .join(",");
+
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${bounds}&layer=mapnik`;
+}
+
 function PhotoLocationMap({ photo }: { photo: GalleryItem }) {
+  const [expanded, setExpanded] = useState(false);
+  const [hoverMuted, setHoverMuted] = useState(false);
   const coordinates = getPhotoCoordinates(photo);
 
   if (!coordinates) return null;
 
+  const toggleExpanded = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const nextExpanded = !expanded;
+
+    setExpanded(nextExpanded);
+    setHoverMuted(!nextExpanded);
+    if (!nextExpanded) event.currentTarget.blur();
+  };
+
+  const closeExpanded = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setExpanded(false);
+    setHoverMuted(true);
+    event.currentTarget.blur();
+  };
+
   return (
-    <div className="photo-detail-location-wrap">
-      <button className="photo-detail-location" type="button" aria-label={`Show location for ${photo.city}`}>
+    <div
+      className={`photo-detail-location-wrap${expanded ? " is-expanded" : ""}${hoverMuted && !expanded ? " is-hover-muted" : ""}`}
+      onMouseLeave={() => setHoverMuted(false)}
+    >
+      <button
+        className="photo-detail-location"
+        type="button"
+        aria-label={`Show location for ${photo.city}`}
+        aria-expanded={expanded}
+        onClick={toggleExpanded}
+      >
         LOCATION
       </button>
-      <aside className="photo-detail-map" aria-label={`${photo.city} shooting location`} style={getMapPointStyle(coordinates)}>
-        <div className="photo-detail-map__grid" aria-hidden="true" />
-        <span className="photo-detail-map__route photo-detail-map__route--one" aria-hidden="true" />
-        <span className="photo-detail-map__route photo-detail-map__route--two" aria-hidden="true" />
-        <span className="photo-detail-map__route photo-detail-map__route--three" aria-hidden="true" />
+      <aside className="photo-detail-map" aria-label={`${photo.city} shooting location`} onClick={(event) => event.stopPropagation()}>
+        <iframe
+          src={getMapEmbedUrl(coordinates)}
+          title={`${photo.city} shooting map`}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+        />
+        <div className="photo-detail-map__wash" aria-hidden="true" />
         <span className="photo-detail-map__point" aria-hidden="true" />
+        <a
+          className="photo-detail-map__credit"
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+          onClick={(event) => event.stopPropagation()}
+        >
+          © OSM
+        </a>
+        <button
+          className="photo-detail-map__close"
+          type="button"
+          aria-label="Close expanded map"
+          onClick={closeExpanded}
+        >
+          <span aria-hidden="true" />
+        </button>
         <div className="photo-detail-map__meta">
           <strong>{photo.city}</strong>
           <span>
@@ -251,6 +305,7 @@ export function PhotographyPortfolio() {
   const [aboutReady, setAboutReady] = useState(false);
   const [aboutOnDark, setAboutOnDark] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [selectedSocialQrId, setSelectedSocialQrId] = useState<SocialQrCard["id"] | null>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
   const introRef = useRef<HTMLDivElement>(null);
@@ -263,6 +318,7 @@ export function PhotographyPortfolio() {
   const aboutAnchorRef = useRef<HTMLDivElement>(null);
   const workTransitionRef = useRef<HTMLElement>(null);
   const galleryRef = useRef<HTMLElement>(null);
+  const finalSpreadRef = useRef<HTMLElement>(null);
   const detailOverlayRef = useRef<HTMLDivElement>(null);
   const detailFrameRef = useRef<HTMLElement>(null);
   const detailOriginRef = useRef<DOMRect | null>(null);
@@ -308,6 +364,10 @@ export function PhotographyPortfolio() {
   const widePhotoIds = useMemo(() => new Set(portfolioPhotos.filter((photo) => photo.ratio >= 1.75).map((photo) => photo.id)), []);
   const selectedPhoto = useMemo(() => galleryPhotos.find((photo) => photo.id === selectedPhotoId) ?? null, [galleryPhotos, selectedPhotoId]);
   const selectedPalette = selectedPhoto ? (photoPalettes[selectedPhoto.id] ?? fallbackPalette) : fallbackPalette;
+  const selectedSocialQr = useMemo(
+    () => socialQrCards.find((card) => card.id === selectedSocialQrId) ?? null,
+    [selectedSocialQrId],
+  );
 
   const createDetailTransitionClone = (photo: GalleryItem, rect: DOMRect) => {
     const clone = document.createElement("div");
@@ -401,15 +461,22 @@ export function PhotographyPortfolio() {
   }, [photoPalettes, selectedPhoto]);
 
   useEffect(() => {
-    if (!aboutOpen) return;
+    if (!aboutOpen && !selectedSocialQr) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setAboutOpen(false);
+      if (event.key !== "Escape") return;
+
+      if (selectedSocialQr) {
+        setSelectedSocialQrId(null);
+        return;
+      }
+
+      setAboutOpen(false);
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [aboutOpen]);
+  }, [aboutOpen, selectedSocialQr]);
 
   useEffect(() => {
     if (!selectedPhoto) return;
@@ -540,13 +607,27 @@ export function PhotographyPortfolio() {
       const rect = section.getBoundingClientRect();
       const transitionRect = transition.getBoundingClientRect();
       const galleryRect = gallery.getBoundingClientRect();
+      const finalRect = finalSpreadRef.current?.getBoundingClientRect();
       const stickyTop = Number.parseFloat(window.getComputedStyle(anchor).top) || 0;
-      const nextReady = rect.top <= stickyTop + 2 && galleryRect.bottom > stickyTop + 96;
-      const nextOnDark = transitionRect.top <= stickyTop + window.innerHeight * 0.46;
+      const transitionInView = transitionRect.top <= stickyTop + 96 && transitionRect.bottom >= stickyTop;
+      const documentBottom = document.documentElement.scrollHeight - window.innerHeight;
+      const nearPageBottom = window.scrollY >= documentBottom - 8;
+      const finalProgress =
+        finalRect && finalRect.top <= stickyTop
+          ? Math.min(1, Math.max(0, (stickyTop - finalRect.top) / Math.max(1, finalRect.height - window.innerHeight * 0.18)))
+          : 0;
+      const finalInMainView = finalRect ? finalRect.top <= stickyTop + window.innerHeight * 0.72 : false;
+      const finalIsDark = finalProgress > 0.86 || nearPageBottom;
+      const finalIsLight = finalInMainView && finalProgress <= 0.86;
+      const nextReady = rect.top <= stickyTop + 2 && !transitionInView;
+      const nextOnDark = (galleryRect.top <= stickyTop + 24 && !finalIsLight) || finalIsDark;
 
       setAboutReady(nextReady);
       setAboutOnDark(nextOnDark);
-      if (!nextReady) setAboutOpen(false);
+      if (!nextReady) {
+        setAboutOpen(false);
+        setSelectedSocialQrId(null);
+      }
     };
 
     const requestUpdate = () => {
@@ -582,48 +663,38 @@ export function PhotographyPortfolio() {
       const ctx = gsap.context(() => {
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const stage = section.querySelector<HTMLElement>(".photo-work-transition__stage");
-        const hudItems = section.querySelectorAll<HTMLElement>(".photo-work-transition__hud > *");
-        const dot = section.querySelector<HTMLElement>(".photo-work-transition__dot");
-        const reticles = section.querySelectorAll<HTMLElement>(".photo-work-transition__reticle");
-
         if (!stage) return;
 
         if (reduceMotion) {
-          gsap.set(stage, { "--work-darkness": 1, backgroundColor: "#111" });
-          gsap.set([hudItems, dot, reticles], { autoAlpha: 1, filter: "blur(0px)" });
+          gsap.set(stage, { "--work-darkness": 1, "--work-smear": 0, "--work-wipe": 1, backgroundColor: "#111" });
           return;
         }
 
         gsap.set(stage, {
           "--work-darkness": 0,
           "--work-smear": 0,
-          "--work-veil": 0,
-          backgroundColor: "transparent",
-          color: "#101112",
+          "--work-flash": 0,
+          "--work-wipe": 0,
+          backgroundColor: "#eee",
         });
-        gsap.set(hudItems, { autoAlpha: 0, y: -8 });
-        gsap.set(dot, { autoAlpha: 0, scale: 0.6 });
-        gsap.set(reticles, { autoAlpha: 0.16 });
 
         gsap
           .timeline({
             defaults: { ease: "none" },
             scrollTrigger: {
               trigger: section,
-              start: "top 76%",
-              end: "top -34%",
-              scrub: 1.08,
+              start: "top 72%",
+              end: "bottom top",
+              scrub: 0.42,
               invalidateOnRefresh: true,
               refreshPriority: -2,
             },
           })
-          .to(stage, { "--work-veil": 1, duration: 0.2 }, 0)
-          .to(stage, { "--work-smear": 1, duration: 0.46 }, 0.04)
-          .to(stage, { "--work-darkness": 1, duration: 0.44 }, 0.08)
-          .to(stage, { backgroundColor: "#111", color: "#f2f2ee", duration: 0.24 }, 0.22)
-          .to(hudItems, { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.035 }, 0.24)
-          .to(dot, { autoAlpha: 1, scale: 1, duration: 0.18 }, 0.36)
-          .to(reticles, { autoAlpha: 0.5, duration: 0.3, stagger: 0.04 }, 0.34);
+          .to(stage, { "--work-smear": 0.82, duration: 0.18 }, 0.16)
+          .to(stage, { "--work-wipe": 1, "--work-darkness": 1, duration: 0.22 }, 0.28)
+          .to(stage, { "--work-flash": 1, duration: 0.06 }, 0.34)
+          .to(stage, { backgroundColor: "#111", duration: 0.08 }, 0.44)
+          .to(stage, { "--work-smear": 0.1, "--work-flash": 0, duration: 0.2 }, 0.5);
 
         ScrollTrigger.refresh();
       }, section);
@@ -907,7 +978,7 @@ export function PhotographyPortfolio() {
                 defaults: { ease: "none" },
                 scrollTrigger: {
                   trigger: card,
-                  start: "top 112%",
+                  start: "top 100%",
                   end: "bottom 34%",
                   scrub: 1.05 + depth * 0.18,
                   invalidateOnRefresh: true,
@@ -1008,6 +1079,101 @@ export function PhotographyPortfolio() {
     };
   }, []);
 
+  useEffect(() => {
+    const section = finalSpreadRef.current;
+    if (!section) return;
+
+    const stage = section.querySelector<HTMLElement>(".photo-final-spread__stage");
+    const words = section.querySelectorAll<HTMLElement>(".photo-final-spread__word");
+    const codeFields = section.querySelectorAll<HTMLElement>(".photo-final-spread__code");
+    let cleanup = () => {};
+    let cancelled = false;
+
+    const init = async () => {
+      const { gsap } = await import("gsap");
+      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+      if (cancelled) return;
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const ctx = gsap.context(() => {
+        const mm = gsap.matchMedia();
+
+        mm.add(
+          {
+            reduceMotion: "(prefers-reduced-motion: reduce)",
+            desktop: "(min-width: 901px)",
+          },
+          (context) => {
+            const { reduceMotion, desktop } = context.conditions ?? {};
+
+            if (reduceMotion) {
+              gsap.set([stage, ...words, ...codeFields].filter(Boolean), { autoAlpha: 1, clearProps: "transform,filter,opacity" });
+              return;
+            }
+
+            const timeline = gsap
+              .timeline({
+                defaults: { ease: "none" },
+                scrollTrigger: {
+                  trigger: section,
+                  start: "top bottom",
+                  end: "bottom bottom",
+                  scrub: 0.85,
+                  invalidateOnRefresh: true,
+                  refreshPriority: -1,
+                },
+              })
+              .fromTo(
+                section,
+                { "--final-progress": 0 },
+                { "--final-progress": 1, duration: 1 },
+                0,
+              )
+              .fromTo(
+                stage,
+                {
+                  y: () => (desktop ? window.innerHeight * 0.08 : window.innerHeight * 0.06),
+                  filter: "blur(14px)",
+                },
+                {
+                  y: 0,
+                  filter: "blur(0px)",
+                  duration: 1,
+                },
+                0,
+              )
+              .fromTo(
+                words,
+                { autoAlpha: 0, yPercent: 54, filter: "blur(14px)" },
+                { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.72, stagger: 0.06 },
+                0.18,
+              )
+              .fromTo(
+                codeFields,
+                { autoAlpha: 0, yPercent: 24, filter: "blur(8px)" },
+                { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.5, stagger: 0.08 },
+                0.28,
+              );
+          },
+        );
+
+        ScrollTrigger.refresh();
+
+        return () => mm.revert();
+      }, section);
+
+      cleanup = () => ctx.revert();
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, []);
+
   return (
     <main className="photo-site">
       <div className="photo-intro-overlay" ref={introRef} aria-hidden="true">
@@ -1053,7 +1219,12 @@ export function PhotographyPortfolio() {
           type="button"
           aria-expanded={aboutOpen}
           aria-controls="about-social-panel"
-          onClick={() => setAboutOpen((open) => !open)}
+          onClick={() => {
+            setAboutOpen((open) => {
+              if (open) setSelectedSocialQrId(null);
+              return !open;
+            });
+          }}
         >
           <span>ABOUT ME</span>
           <i aria-hidden="true" />
@@ -1066,24 +1237,60 @@ export function PhotographyPortfolio() {
           aria-modal="false"
           aria-label="About Me social media"
         >
-          <button className="about-social-panel__close" type="button" aria-label="Close About Me" onClick={() => setAboutOpen(false)}>
+          <button
+            className="about-social-panel__close"
+            type="button"
+            aria-label="Close About Me"
+            onClick={() => {
+              setAboutOpen(false);
+              setSelectedSocialQrId(null);
+            }}
+          >
             <span aria-hidden="true" />
           </button>
-          <div className="about-social-panel__qr" aria-hidden="true">
-            <span />
-            <span />
-            <span />
+          <div className="about-social-panel__qr-list">
+            {socialQrCards.map((card) => (
+              <figure className="about-social-panel__qr-card" key={card.id}>
+                <button
+                  className="about-social-panel__qr-button"
+                  type="button"
+                  aria-label={`Open larger ${card.label} QR code`}
+                  onClick={() => setSelectedSocialQrId(card.id)}
+                >
+                  <NextImage src={card.src} alt={card.alt} width={card.width} height={card.height} unoptimized />
+                </button>
+                <figcaption>{card.label}</figcaption>
+              </figure>
+            ))}
           </div>
-          <p>QR PLACEHOLDER</p>
           <strong>ABOUT ME</strong>
         </div>
       </div>
+
+      {selectedSocialQr ? (
+        <div className="about-qr-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedSocialQr.label} QR code preview`}>
+          <button className="about-qr-lightbox__backdrop" type="button" aria-label="Close QR preview" onClick={() => setSelectedSocialQrId(null)} />
+          <figure className="about-qr-lightbox__card">
+            <button className="about-qr-lightbox__close" type="button" aria-label="Close QR preview" onClick={() => setSelectedSocialQrId(null)}>
+              <span aria-hidden="true" />
+            </button>
+            <NextImage
+              src={selectedSocialQr.src}
+              alt={selectedSocialQr.alt}
+              width={selectedSocialQr.width}
+              height={selectedSocialQr.height}
+              unoptimized
+            />
+            <figcaption>{selectedSocialQr.label}</figcaption>
+          </figure>
+        </div>
+      ) : null}
 
       <div className="photo-site-content" ref={siteContentRef}>
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
             <video
-              src="/portfolio/videos/web3.mp4"
+              src="/portfolio/videos/web4.mp4"
               poster={portfolioPhotos[0].src}
               autoPlay
               muted
@@ -1106,21 +1313,7 @@ export function PhotographyPortfolio() {
           <TubeTextScroll />
         </div>
 
-        <section className="photo-work-transition" ref={workTransitionRef} aria-hidden="true">
-          <div className="photo-work-transition__stage">
-            <div className="photo-work-transition__hud">
-              <span>003</span>
-              <i />
-              <strong>WORK</strong>
-              <b>BIN +</b>
-            </div>
-            <span className="photo-work-transition__dot" />
-            <span className="photo-work-transition__reticle photo-work-transition__reticle--one" />
-            <span className="photo-work-transition__reticle photo-work-transition__reticle--two" />
-            <span className="photo-work-transition__cross photo-work-transition__cross--one" />
-            <span className="photo-work-transition__cross photo-work-transition__cross--two" />
-          </div>
-        </section>
+        <section className="photo-work-transition" ref={workTransitionRef} aria-hidden="true" />
 
         <section className="photo-gallery-scene" ref={galleryRef}>
           <div className="photo-gallery-bg" aria-hidden="true" />
@@ -1170,6 +1363,25 @@ export function PhotographyPortfolio() {
                 </figcaption>
               </figure>
             ))}
+          </div>
+        </section>
+
+        <section className="photo-final-spread" ref={finalSpreadRef} aria-label="Shot on Fujifilm XH2">
+          <div className="photo-final-spread__stage">
+            <div className="photo-final-spread__meta" aria-hidden="true">
+              <span>BIN PHOTO ARCHIVE</span>
+              <span>SHOT ON FUJIFILM XH2</span>
+            </div>
+            <div className="photo-final-spread__code photo-final-spread__code--left" aria-hidden="true">
+              {"{BIN} / XH2 / 000111001101 / LIGHT / FRAME / MEMORY / COLOR / GRAIN / "}
+            </div>
+            <div className="photo-final-spread__code photo-final-spread__code--right" aria-hidden="true">
+              {"SHOT / STILL / FOCUS / ISO / GLASS / SENSOR / XH2 / FUJIFILM / "}
+            </div>
+            <h2 className="photo-final-spread__title">
+              <span className="photo-final-spread__word">Shot On</span>
+              <span className="photo-final-spread__word photo-final-spread__word--serif">Fujifilm XH2</span>
+            </h2>
           </div>
         </section>
 

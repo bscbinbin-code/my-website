@@ -51,6 +51,9 @@ temp/
 
 # Local source assets / tooling archives
 Photos/
+!/public/portfolio/photos/
+public/portfolio/photos/*
+!/public/portfolio/photos/fujifilm-final.png
 skills/
 skill-install-extract/
 
