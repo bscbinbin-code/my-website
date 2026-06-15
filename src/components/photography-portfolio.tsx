@@ -64,6 +64,7 @@ const socialQrCards: SocialQrCard[] = [
     height: 1466,
   },
 ];
+const finalCreditWords = ["ALL", "SHOT ON", "FUJIFILM", "XH2"] as const;
 
 const galleryLayoutPattern = [
   { gridColumn: "1 / span 4", offset: 0, width: 96, shift: -2, tilt: -0.08 },
@@ -307,6 +308,7 @@ export function PhotographyPortfolio() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedSocialQrId, setSelectedSocialQrId] = useState<SocialQrCard["id"] | null>(null);
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
+  const [isXh2PreviewVisible, setIsXh2PreviewVisible] = useState(false);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
   const introRef = useRef<HTMLDivElement>(null);
   const introWordRef = useRef<SVGTextElement>(null);
@@ -323,7 +325,12 @@ export function PhotographyPortfolio() {
   const detailFrameRef = useRef<HTMLElement>(null);
   const detailOriginRef = useRef<DOMRect | null>(null);
   const detailClosingRef = useRef(false);
-  const scrollLockRef = useRef<{ overflow: string; paddingRight: string } | null>(null);
+  const detailOpenTimelineRef = useRef<{ kill: () => void } | null>(null);
+  const detailGlowTweenRef = useRef<{ kill: () => void } | null>(null);
+  const scrollLockRef = useRef<{
+    bodyTouchAction: string;
+    documentOverscrollBehavior: string;
+  } | null>(null);
   const galleryPhotos = useMemo<GalleryItem[]>(() => {
     const nextPhotos = [...portfolioPhotos];
     const firstIndex = nextPhotos.findIndex((photo) => photo.id === 36);
@@ -417,10 +424,27 @@ export function PhotographyPortfolio() {
     const media = frame.querySelector<HTMLElement>(".photo-detail-media");
     const frameRect = (media ?? frame).getBoundingClientRect();
     const metadata = frame.querySelectorAll<HTMLElement>(".photo-detail-meta > *");
+    const glowEdges = frame.querySelectorAll<HTMLElement>(".photo-detail-glow__edge");
     const clone = selectedPhoto ? createDetailTransitionClone(selectedPhoto, frameRect) : null;
 
+    detailOpenTimelineRef.current?.kill();
+    detailOpenTimelineRef.current = null;
+    detailGlowTweenRef.current?.kill();
+    detailGlowTweenRef.current = null;
+    gsap.killTweensOf([overlay, frame, metadata, glowEdges]);
+    gsap.set(overlay, {
+      "--detail-overlay-spot": 0.18,
+      "--detail-overlay-edge": 0.72,
+      "--detail-overlay-dim": 0.42,
+      "--detail-overlay-blur": 18,
+      "--detail-overlay-saturation": 0.78,
+      "--detail-overlay-brightness": 0.78,
+      "--detail-work-alpha": 0,
+      "--detail-work-blur": 18,
+      pointerEvents: "none",
+    });
     gsap.set(clone, { autoAlpha: 1, scale: 1, filter: "blur(0px)" });
-    gsap.set(frame, { autoAlpha: 0 });
+    gsap.set([frame, glowEdges], { autoAlpha: 0 });
     gsap
       .timeline({
         defaults: { ease: "power3.inOut" },
@@ -430,6 +454,29 @@ export function PhotographyPortfolio() {
           setSelectedPhotoId(null);
         },
       })
+      .to(
+        overlay,
+        {
+          "--detail-overlay-spot": 0,
+          "--detail-overlay-edge": 0,
+          "--detail-overlay-dim": 0,
+          "--detail-overlay-blur": 0,
+          "--detail-overlay-saturation": 1,
+          "--detail-overlay-brightness": 1,
+          duration: 0.22,
+          ease: "power2.out",
+        },
+        0,
+      )
+      .set(
+        overlay,
+        {
+          background: "transparent",
+          backdropFilter: "none",
+          webkitBackdropFilter: "none",
+        },
+        0.08,
+      )
       .to(metadata, { autoAlpha: 0, y: 8, filter: "blur(5px)", duration: 0.16 }, 0)
       .to(
         clone,
@@ -443,7 +490,7 @@ export function PhotographyPortfolio() {
         },
         0,
       )
-      .to(overlay, { autoAlpha: 0, duration: 0.36 }, 0.1);
+      .to(overlay, { autoAlpha: 0, duration: 0.18 }, 0.38);
   };
 
   useEffect(() => {
@@ -484,27 +531,34 @@ export function PhotographyPortfolio() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") void closePhotoDetail();
     };
+    const preventScroll = (event: Event) => {
+      event.preventDefault();
+    };
 
     if (!scrollLockRef.current) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       scrollLockRef.current = {
-        overflow: document.body.style.overflow,
-        paddingRight: document.body.style.paddingRight,
+        bodyTouchAction: document.body.style.touchAction,
+        documentOverscrollBehavior: document.documentElement.style.overscrollBehavior,
       };
-      document.body.style.overflow = "hidden";
-      if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.body.style.touchAction = "none";
+      document.documentElement.style.overscrollBehavior = "none";
     }
-    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+    document.documentElement.style.overscrollBehavior = "none";
     window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("wheel", preventScroll, { passive: false, capture: true });
+    window.addEventListener("touchmove", preventScroll, { passive: false, capture: true });
 
     return () => {
       const previous = scrollLockRef.current;
       if (previous) {
-        document.body.style.overflow = previous.overflow;
-        document.body.style.paddingRight = previous.paddingRight;
+        document.body.style.touchAction = previous.bodyTouchAction;
+        document.documentElement.style.overscrollBehavior = previous.documentOverscrollBehavior;
         scrollLockRef.current = null;
       }
       window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("wheel", preventScroll, true);
+      window.removeEventListener("touchmove", preventScroll, true);
     };
   }, [selectedPhoto]);
 
@@ -525,15 +579,27 @@ export function PhotographyPortfolio() {
       const media = frame.querySelector<HTMLElement>(".photo-detail-media");
       const target = (media ?? frame).getBoundingClientRect();
       const metadata = frame.querySelectorAll<HTMLElement>(".photo-detail-meta > *");
+      const glowEdges = frame.querySelectorAll<HTMLElement>(".photo-detail-glow__edge");
       const clone = origin ? createDetailTransitionClone(selectedPhoto, origin) : null;
 
       const ctx = gsap.context(() => {
         if (reduceMotion) {
-          gsap.set([overlay, frame, metadata], { clearProps: "all" });
+          gsap.set([overlay, frame, metadata, glowEdges], { clearProps: "all" });
           return;
         }
 
-        gsap.set(overlay, { autoAlpha: 0 });
+        gsap.set(overlay, {
+          clearProps: "background,backdropFilter,webkitBackdropFilter,pointerEvents",
+          autoAlpha: 0,
+          "--detail-overlay-spot": 0.18,
+          "--detail-overlay-edge": 0.72,
+          "--detail-overlay-dim": 0.42,
+          "--detail-overlay-blur": 18,
+          "--detail-overlay-saturation": 0.78,
+          "--detail-overlay-brightness": 0.78,
+          "--detail-work-alpha": 0,
+          "--detail-work-blur": 18,
+        });
         gsap.set(frame, {
           autoAlpha: 0,
           x: 0,
@@ -543,15 +609,19 @@ export function PhotographyPortfolio() {
           transformOrigin: "50% 50%",
         });
         gsap.set(metadata, { autoAlpha: 0, y: 10, filter: "blur(6px)" });
+        gsap.set(glowEdges, { opacity: 0, scale: 0.98, transformOrigin: "50% 50%" });
         gsap.set(clone, { autoAlpha: 1, filter: "blur(0px)" });
 
-        gsap
-          .timeline({
+        const openTimeline = gsap.timeline({
             defaults: { ease: "power3.inOut" },
             onComplete: () => {
               clone?.remove();
+              detailOpenTimelineRef.current = null;
             },
-          })
+          });
+        detailOpenTimelineRef.current = openTimeline;
+
+        openTimeline
           .to(overlay, { autoAlpha: 1, duration: 0.24 }, 0)
           .to(
             clone,
@@ -577,10 +647,36 @@ export function PhotographyPortfolio() {
             0.48,
           )
           .to(clone, { autoAlpha: 0, duration: 0.12 }, 0.5)
+          .to(
+            glowEdges,
+            {
+              opacity: (index) => [0.26, 0.2, 0.18, 0.2][index] ?? 0.2,
+              scale: 1,
+              duration: 0.46,
+              stagger: 0.035,
+              ease: "sine.out",
+            },
+            0.5,
+          )
           .to(metadata, { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 0.28, stagger: 0.035, ease: "power2.out" }, 0.52);
+
+        detailGlowTweenRef.current = gsap.to(glowEdges, {
+          opacity: (index) => [0.34, 0.24, 0.22, 0.24][index] ?? 0.24,
+          scale: (index) => [1.018, 1.012, 1.014, 1.012][index] ?? 1.012,
+          duration: 3.8,
+          delay: 0.9,
+          ease: "sine.inOut",
+          repeat: -1,
+          yoyo: true,
+          stagger: { each: 0.22, from: "center" },
+        });
       }, overlay);
 
       cleanup = () => {
+        detailOpenTimelineRef.current?.kill();
+        detailOpenTimelineRef.current = null;
+        detailGlowTweenRef.current?.kill();
+        detailGlowTweenRef.current = null;
         clone?.remove();
         ctx.revert();
       };
@@ -619,7 +715,7 @@ export function PhotographyPortfolio() {
       const finalInMainView = finalRect ? finalRect.top <= stickyTop + window.innerHeight * 0.72 : false;
       const finalIsDark = finalProgress > 0.86 || nearPageBottom;
       const finalIsLight = finalInMainView && finalProgress <= 0.86;
-      const nextReady = rect.top <= stickyTop + 2 && !transitionInView;
+      const nextReady = rect.top <= stickyTop + 2 && !transitionInView && !finalInMainView;
       const nextOnDark = (galleryRect.top <= stickyTop + 24 && !finalIsLight) || finalIsDark;
 
       setAboutReady(nextReady);
@@ -717,7 +813,17 @@ export function PhotographyPortfolio() {
     const introMask = introMaskRef.current;
     const introMaskText = introMaskTextRef.current;
     const siteContent = siteContentRef.current;
-    if (!intro || !introWord || !introOutline || !introMask || !introMaskText || !siteContent) return;
+    if (!intro || !introWord || !introOutline || !introMask || !introMaskText || !siteContent) {
+      if (intro && siteContent) {
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
+        siteContent.style.opacity = "1";
+        siteContent.style.visibility = "visible";
+        intro.style.opacity = "0";
+        intro.style.display = "none";
+      }
+      return;
+    }
 
     let cleanup = () => {};
     let cancelled = false;
@@ -729,16 +835,25 @@ export function PhotographyPortfolio() {
       const ctx = gsap.context(() => {
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         const previousBodyOverflow = document.body.style.overflow;
+        const previousDocumentOverflow = document.documentElement.style.overflow;
+
+        const finishIntro = () => {
+          document.body.style.overflow = previousBodyOverflow;
+          document.documentElement.style.overflow = previousDocumentOverflow;
+          gsap.set(siteContent, { autoAlpha: 1, visibility: "visible" });
+          gsap.set(intro, { autoAlpha: 0, display: "none" });
+        };
 
         if (reduceMotion) {
           gsap.set(siteContent, { autoAlpha: 1 });
-          gsap.set(intro, { autoAlpha: 0 });
+          gsap.set(intro, { autoAlpha: 0, display: "none" });
           return;
         }
 
         document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
         gsap.set(siteContent, { autoAlpha: 1, visibility: "visible" });
-        gsap.set(intro, { autoAlpha: 1 });
+        gsap.set(intro, { autoAlpha: 1, display: "grid" });
         gsap.set(introMask, { autoAlpha: 1 });
         gsap.set([introWord, introOutline, introMaskText], {
           attr: { transform: "translate(600 522) scale(1) translate(-600 -522)" },
@@ -755,10 +870,9 @@ export function PhotographyPortfolio() {
 
         const tl = gsap.timeline({
           defaults: { ease: "power3.out" },
-          onComplete: () => {
-            document.body.style.overflow = previousBodyOverflow;
-          },
+          onComplete: finishIntro,
         });
+        const fallbackExit = window.setTimeout(finishIntro, 4200);
 
         tl.to(introWord, {
           autoAlpha: 1,
@@ -828,14 +942,18 @@ export function PhotographyPortfolio() {
             intro,
             {
               autoAlpha: 0,
+              display: "none",
               duration: 0.36,
               ease: "power2.out",
+              onComplete: () => window.clearTimeout(fallbackExit),
             },
             "<",
           );
 
         return () => {
+          window.clearTimeout(fallbackExit);
           document.body.style.overflow = previousBodyOverflow;
+          document.documentElement.style.overflow = previousDocumentOverflow;
         };
       });
 
@@ -868,7 +986,7 @@ export function PhotographyPortfolio() {
 
       const ctx = gsap.context(() => {
         const mm = gsap.matchMedia();
-        let resetGlow: { kill: () => void } | undefined;
+        let resetMotion: { kill: () => void } | undefined;
 
         mm.add(
           {
@@ -884,27 +1002,83 @@ export function PhotographyPortfolio() {
               return;
             }
 
-            const glowTo = gsap.quickTo(section, "--scroll-glow", {
-              duration: 0.42,
-              ease: "power3.out",
+            const galleryMotionTo = gsap.quickTo(section, "--scroll-motion", {
+              duration: 0.28,
+              ease: "sine.out",
             });
-            let lastScrollY = window.scrollY;
-            let lastTime = performance.now();
-            const updateGlow = () => {
-              const now = performance.now();
-              const deltaTime = Math.max(16, now - lastTime);
-              const velocity = Math.abs(window.scrollY - lastScrollY) / deltaTime;
-              const glow = Math.min(1, velocity / 1.85);
+            const galleryGlowTo = gsap.quickTo(section, "--scroll-glow", {
+              duration: 0.34,
+              ease: "sine.out",
+            });
+            const gallerySmearTo = gsap.quickTo(section, "--scroll-smear", {
+              duration: 0.2,
+              ease: "sine.out",
+            });
+            const galleryTrailTo = gsap.quickTo(section, "--scroll-trail-y", {
+              duration: 0.34,
+              ease: "sine.out",
+            });
+            const galleryTrailTopTo = gsap.quickTo(section, "--scroll-trail-top", {
+              duration: 0.32,
+              ease: "sine.out",
+            });
+            const galleryTrailBottomTo = gsap.quickTo(section, "--scroll-trail-bottom", {
+              duration: 0.32,
+              ease: "sine.out",
+            });
 
-              glowTo(glow);
-              resetGlow?.kill();
-              resetGlow = gsap.delayedCall(0.14, () => glowTo(0));
-              lastScrollY = window.scrollY;
-              lastTime = now;
+            const clearGalleryMotion = () => {
+              gsap.to(section, {
+                "--scroll-glow": 0,
+                "--scroll-motion": 0,
+                "--scroll-smear": 0,
+                "--scroll-trail-y": 0,
+                "--scroll-trail-top": 0,
+                "--scroll-trail-bottom": 0,
+                duration: 0.24,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
             };
 
-            gsap.set(section, { "--scroll-glow": 0 });
-            window.addEventListener("scroll", updateGlow, { passive: true });
+            gsap.set(section, {
+              "--scroll-glow": 0,
+              "--scroll-motion": 0,
+              "--scroll-smear": 0,
+              "--scroll-trail-y": 0,
+              "--scroll-trail-top": 0,
+              "--scroll-trail-bottom": 0,
+            });
+
+            const velocityTrigger = ScrollTrigger.create({
+              trigger: section,
+              start: "top bottom",
+              end: "bottom top",
+              onUpdate: (self) => {
+                const velocity = self.getVelocity();
+                const speed = Math.min(1, Math.abs(velocity) / 2200);
+                const direction = velocity >= 0 ? -1 : 1;
+                const trailStrength = Math.min(1, Math.max(0, (speed - 0.04) * 1.22));
+
+                galleryMotionTo(speed);
+                galleryGlowTo(Math.min(1, trailStrength));
+                gallerySmearTo(Math.min(1, speed * 1.18));
+                galleryTrailTo(direction * (6 + speed * 26));
+                galleryTrailTopTo(velocity > 0 ? trailStrength : 0);
+                galleryTrailBottomTo(velocity < 0 ? trailStrength : 0);
+
+                resetMotion?.kill();
+                resetMotion = gsap.delayedCall(0.08, clearGalleryMotion);
+              },
+              onLeave: () => {
+                resetMotion?.kill();
+                clearGalleryMotion();
+              },
+              onLeaveBack: () => {
+                resetMotion?.kill();
+                clearGalleryMotion();
+              },
+            });
 
             if (workTitle) {
               gsap.set(workTitle, {
@@ -970,8 +1144,8 @@ export function PhotographyPortfolio() {
               const depth = Number(card.dataset.depth || 1);
               const lane = index % 6;
               const baseShift = Number(card.dataset.shift || 0);
-              const enterY = desktop ? 26 : 18;
-              const leaveY = desktop ? -24 : -16;
+              const enterY = desktop ? 34 : 22;
+              const leaveY = desktop ? -34 : -20;
               const baseRotation = Number(card.dataset.tilt || 0);
 
               const cardTimeline = gsap.timeline({
@@ -980,7 +1154,7 @@ export function PhotographyPortfolio() {
                   trigger: card,
                   start: "top 100%",
                   end: "bottom 34%",
-                  scrub: 1.05 + depth * 0.18,
+                  scrub: 1.22 + depth * 0.24,
                   invalidateOnRefresh: true,
                 },
               });
@@ -1059,8 +1233,8 @@ export function PhotographyPortfolio() {
             ScrollTrigger.refresh();
 
             return () => {
-              resetGlow?.kill();
-              window.removeEventListener("scroll", updateGlow);
+              resetMotion?.kill();
+              velocityTrigger.kill();
             };
           },
         );
@@ -1083,9 +1257,9 @@ export function PhotographyPortfolio() {
     const section = finalSpreadRef.current;
     if (!section) return;
 
-    const stage = section.querySelector<HTMLElement>(".photo-final-spread__stage");
-    const words = section.querySelectorAll<HTMLElement>(".photo-final-spread__word");
-    const codeFields = section.querySelectorAll<HTMLElement>(".photo-final-spread__code");
+    const sheet = section.querySelector<HTMLElement>(".photo-final-sheet");
+    const finalWords = [...section.querySelectorAll<HTMLElement>(".photo-final-word")];
+    const finalArtifacts = [...section.querySelectorAll<HTMLElement>(".photo-final-artifact")];
     let cleanup = () => {};
     let cancelled = false;
 
@@ -1097,70 +1271,127 @@ export function PhotographyPortfolio() {
       gsap.registerPlugin(ScrollTrigger);
 
       const ctx = gsap.context(() => {
-        const mm = gsap.matchMedia();
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        const getSheetDrop = () => Math.min(window.innerHeight * 0.72, 760);
 
-        mm.add(
-          {
-            reduceMotion: "(prefers-reduced-motion: reduce)",
-            desktop: "(min-width: 901px)",
-          },
-          (context) => {
-            const { reduceMotion, desktop } = context.conditions ?? {};
+        if (reduceMotion) {
+          if (sheet) gsap.set(sheet, { y: 0, clearProps: "transform" });
+          gsap.set(section, {
+            "--final-stage-dim": 1,
+            "--final-edge-shadow": 0,
+            "--final-paper-pressure": 0,
+          });
+          gsap.set(finalWords, { autoAlpha: 1, y: 0, filter: "blur(0px)", scale: 1 });
+          gsap.set(finalArtifacts, { autoAlpha: 1, y: 0, filter: "blur(0px)", scale: 1 });
+          return;
+        }
 
-            if (reduceMotion) {
-              gsap.set([stage, ...words, ...codeFields].filter(Boolean), { autoAlpha: 1, clearProps: "transform,filter,opacity" });
-              return;
-            }
+        gsap.set(section, {
+          "--final-stage-dim": 0,
+          "--final-edge-shadow": 0.56,
+          "--final-paper-pressure": 1,
+        });
+        if (sheet) {
+          gsap.set(sheet, {
+            y: getSheetDrop,
+            scaleX: 0.986,
+            transformOrigin: "50% 100%",
+          });
+        }
+        gsap.set(finalWords, {
+          autoAlpha: 0,
+          y: 20,
+          filter: "blur(8px)",
+          scale: 0.985,
+        });
+        gsap.set(finalArtifacts, {
+          autoAlpha: 1,
+          y: 0,
+          filter: "blur(0px)",
+          scale: 1,
+        });
 
-            const timeline = gsap
+        let finalWordsVisible = false;
+        const revealFinalWords = () => {
+          if (finalWordsVisible) return;
+          finalWordsVisible = true;
+          gsap.to(finalWords, {
+            autoAlpha: 1,
+            y: 0,
+            filter: "blur(0px)",
+            scale: 1,
+            duration: 0.86,
+            ease: "power2.out",
+            stagger: { amount: 0.12, from: "edges" },
+            overwrite: "auto",
+          });
+        };
+        const hideFinalWords = () => {
+          if (!finalWordsVisible) return;
+          finalWordsVisible = false;
+          gsap.to(finalWords, {
+            autoAlpha: 0,
+            y: 20,
+            filter: "blur(8px)",
+            scale: 0.985,
+            duration: 0.32,
+            ease: "sine.out",
+            stagger: { amount: 0.06, from: "center" },
+            overwrite: "auto",
+          });
+        };
+
+        const finalTimeline = sheet
+          ? gsap
               .timeline({
                 defaults: { ease: "none" },
                 scrollTrigger: {
                   trigger: section,
                   start: "top bottom",
-                  end: "bottom bottom",
-                  scrub: 0.85,
+                  end: "top -62%",
+                  scrub: 1.35,
                   invalidateOnRefresh: true,
-                  refreshPriority: -1,
+                  refreshPriority: -2,
+                  onUpdate: (self) => {
+                    if (self.progress >= 0.76) {
+                      revealFinalWords();
+                    } else if (self.progress <= 0.48) {
+                      hideFinalWords();
+                    }
+                  },
+                  onLeave: revealFinalWords,
+                  onEnterBack: (self) => {
+                    if (self.progress <= 0.48) hideFinalWords();
+                  },
                 },
               })
-              .fromTo(
+              .to(
                 section,
-                { "--final-progress": 0 },
-                { "--final-progress": 1, duration: 1 },
-                0,
-              )
-              .fromTo(
-                stage,
                 {
-                  y: () => (desktop ? window.innerHeight * 0.08 : window.innerHeight * 0.06),
-                  filter: "blur(14px)",
-                },
-                {
-                  y: 0,
-                  filter: "blur(0px)",
+                  "--final-stage-dim": 1,
+                  "--final-edge-shadow": 0.18,
+                  "--final-paper-pressure": 0,
                   duration: 1,
                 },
                 0,
               )
-              .fromTo(
-                words,
-                { autoAlpha: 0, yPercent: 54, filter: "blur(14px)" },
-                { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.72, stagger: 0.06 },
-                0.18,
+              .to(
+                sheet,
+                {
+                  y: 0,
+                  scaleX: 1,
+                  duration: 1,
+                },
+                0,
               )
-              .fromTo(
-                codeFields,
-                { autoAlpha: 0, yPercent: 24, filter: "blur(8px)" },
-                { autoAlpha: 1, yPercent: 0, filter: "blur(0px)", duration: 0.5, stagger: 0.08 },
-                0.28,
-              );
-          },
-        );
+          : null;
 
         ScrollTrigger.refresh();
 
-        return () => mm.revert();
+        return () => {
+          finalTimeline?.scrollTrigger?.kill();
+          finalTimeline?.kill();
+        };
       }, section);
 
       cleanup = () => ctx.revert();
@@ -1290,7 +1521,7 @@ export function PhotographyPortfolio() {
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
             <video
-              src="/portfolio/videos/web4.mp4"
+              src="/portfolio/videos/web6.mp4"
               poster={portfolioPhotos[0].src}
               autoPlay
               muted
@@ -1366,22 +1597,39 @@ export function PhotographyPortfolio() {
           </div>
         </section>
 
-        <section className="photo-final-spread" ref={finalSpreadRef} aria-label="Shot on Fujifilm XH2">
-          <div className="photo-final-spread__stage">
-            <div className="photo-final-spread__meta" aria-hidden="true">
-              <span>BIN PHOTO ARCHIVE</span>
-              <span>SHOT ON FUJIFILM XH2</span>
+        <section className="photo-final-spread" ref={finalSpreadRef} aria-label="All shot on Fujifilm XH2">
+          <div className="photo-final-sheet">
+            <div className="photo-final-minimal" aria-label="All shot on Fujifilm XH2">
+              {finalCreditWords.map((word) => (
+                <span
+                  className={`photo-final-word${word === "XH2" ? " photo-final-word-xh2" : ""}`}
+                  key={word}
+                  aria-label={word}
+                  onMouseEnter={word === "XH2" ? () => setIsXh2PreviewVisible(true) : undefined}
+                  onMouseLeave={word === "XH2" ? () => setIsXh2PreviewVisible(false) : undefined}
+                  onPointerEnter={word === "XH2" ? () => setIsXh2PreviewVisible(true) : undefined}
+                  onPointerLeave={word === "XH2" ? () => setIsXh2PreviewVisible(false) : undefined}
+                >
+                  <span className="photo-final-word-face photo-final-word-face-current" aria-hidden="true">
+                    {word}
+                  </span>
+                  <span className="photo-final-word-face photo-final-word-face-next" aria-hidden="true">
+                    {word}
+                  </span>
+                </span>
+              ))}
+              <figure className={`photo-final-artifact photo-final-camera-product${isXh2PreviewVisible ? " is-visible" : ""}`} aria-label="FUJIFILM X-H2 camera body">
+                <span className="photo-final-camera-product-frame" aria-hidden="true">
+                  <NextImage
+                    src="/portfolio/camera/xh2-front-cmos.webp"
+                    alt=""
+                    width={2200}
+                    height={1440}
+                    sizes="(max-width: 900px) 34vw, 20vw"
+                  />
+                </span>
+              </figure>
             </div>
-            <div className="photo-final-spread__code photo-final-spread__code--left" aria-hidden="true">
-              {"{BIN} / XH2 / 000111001101 / LIGHT / FRAME / MEMORY / COLOR / GRAIN / "}
-            </div>
-            <div className="photo-final-spread__code photo-final-spread__code--right" aria-hidden="true">
-              {"SHOT / STILL / FOCUS / ISO / GLASS / SENSOR / XH2 / FUJIFILM / "}
-            </div>
-            <h2 className="photo-final-spread__title">
-              <span className="photo-final-spread__word">Shot On</span>
-              <span className="photo-final-spread__word photo-final-spread__word--serif">Fujifilm XH2</span>
-            </h2>
           </div>
         </section>
 
@@ -1405,6 +1653,12 @@ export function PhotographyPortfolio() {
             style={{ "--detail-ratio": selectedPhoto.ratio } as CSSProperties}
             onClick={(event) => event.stopPropagation()}
           >
+            <div className="photo-detail-glow" aria-hidden="true">
+              <span className="photo-detail-glow__edge photo-detail-glow__edge--top" />
+              <span className="photo-detail-glow__edge photo-detail-glow__edge--right" />
+              <span className="photo-detail-glow__edge photo-detail-glow__edge--bottom" />
+              <span className="photo-detail-glow__edge photo-detail-glow__edge--left" />
+            </div>
             <div className="photo-detail-media">
               <img src={selectedPhoto.src} alt={selectedPhoto.title} decoding="async" />
             </div>

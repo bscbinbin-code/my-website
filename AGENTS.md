@@ -10,7 +10,10 @@ This project uses Next.js 16 with breaking API and file-structure changes. Befor
 - Explain the purpose in plain language before code-related operations.
 - State risks before modifying files, running commands, or accessing external accounts.
 - Write tutorials as beginner-friendly steps and include success signs.
-- Do not batch-delete files or directories. If batch cleanup is needed, stop and ask the user to delete them manually.
+- Batch deletion is allowed only for clearly disposable project-local cache/temp artifacts after stating the exact target and risk.
+- Allowed cleanup targets include `.next/`, `temp/`, local `*.log` files, root-level Playwright screenshot PNGs, and generated dev-server log files.
+- Never delete source code, `Photos/`, `public/portfolio/photos/`, `public/portfolio/social/`, `src/`, `skills/`, `design-md-library/`, `node_modules/`, `.git/`, or user-provided assets unless the user explicitly names that exact target.
+- If a cleanup target is ambiguous, stop and ask before deleting.
 
 # Project
 
@@ -32,6 +35,26 @@ This is a personal photography portfolio site.
 - `npm run lint` - ESLint check.
 - `npm run typecheck` - TypeScript check.
 - `npm run check` - lint + typecheck + build.
+
+# Project Local Skills
+
+These skills are installed only for this project under `skills/`, not globally. They may not appear in Codex's global skill list. When a user asks for one of these names or the task matches its purpose, read the listed `SKILL.md` fully before acting:
+
+- `web-prototype`: `skills/web-prototype/SKILL.md` - desktop web prototype, landing page, homepage, marketing/docs single page.
+- `saas-landing`: `skills/saas-landing/SKILL.md` - SaaS/product landing page with hero, features, pricing, and CTA.
+- `mobile-app`: `skills/mobile-app/SKILL.md` - mobile app / iOS / Android / phone screen mockup.
+- `hyperframes`: `skills/hyperframes/SKILL.md` - HTML video compositions, animations, captions, title cards, and transitions.
+
+# Local Preview Stability
+
+- Do not repeatedly restart the local preview unless the current process is confirmed hung or serving stale output.
+- Before starting a new preview, check port `3100` first with `netstat -ano | Select-String ':3100'`.
+- If port `3100` is listening but browser requests hang, treat it as a stuck Next process rather than a wrong URL.
+- Prefer keeping the existing preview process alive during visual tuning; repeated cold starts make the site feel slow.
+- Avoid clearing `.next/` during ordinary preview troubleshooting. Clearing `.next/` forces a cold rebuild and should be reserved for suspected cache corruption after stating the exact path and risk.
+- If `next dev` repeatedly hangs in the in-app browser, use production preview instead: run `npm.cmd run build`, then start Next with `next start -p 3100`.
+- The in-app browser can keep failed localhost connections in `CLOSE_WAIT` / `FIN_WAIT_2`. If it shows an old error page, first verify the server from PowerShell, then open a fresh tab or manually re-enter `http://127.0.0.1:3100/`.
+- Windows `Start-Process` may fail in this workspace because of duplicate `Path` / `PATH` environment keys. If that happens, do not assume the site code is broken; use the foreground `npm.cmd run dev:local` command or another safer launch method.
 
 # Code Style
 
@@ -94,4 +117,5 @@ Keep generated screenshots out of the repo root when possible. Prefer `temp/` or
 # Local Cleanup Notes
 
 - `scripts/sync-agent-rules.sh` may not exist in this checkout. If it is missing after editing this file, report that instead of trying to run it.
-- Do not batch-delete temporary folders such as `skill-install-extract/`; ask the user to delete them manually if cleanup is needed.
+- Cleanup is permitted for disposable project-local cache/temp artifacts listed in Agent Rules.
+- Before deleting, print or report the exact path(s) and confirm they are inside `F:\Desktop\web-black`.

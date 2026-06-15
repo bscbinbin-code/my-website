@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local archives and generated artifacts that are not app source.
+    "design-md-library/**",
+    "skill-install-extract/**",
+    "skills/**",
+    "temp/**",
+    "*.log",
+    "*.png",
+    "tsconfig.tsbuildinfo",
   ]),
 ]);
 
