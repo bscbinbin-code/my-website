@@ -2,6 +2,7 @@
 
 import type { CSSProperties, MouseEvent } from "react";
 import NextImage from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import photos from "@/data/portfolio-photos.json";
 import { TubeTextScroll } from "@/components/tube-text-scroll";
@@ -307,6 +308,7 @@ export function PhotographyPortfolio() {
   const [aboutOnDark, setAboutOnDark] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedSocialQrId, setSelectedSocialQrId] = useState<SocialQrCard["id"] | null>(null);
+  const [finalAboutVisible, setFinalAboutVisible] = useState(false);
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [isXh2PreviewVisible, setIsXh2PreviewVisible] = useState(false);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
@@ -317,7 +319,7 @@ export function PhotographyPortfolio() {
   const introMaskTextRef = useRef<SVGTextElement>(null);
   const siteContentRef = useRef<HTMLDivElement>(null);
   const locationsRef = useRef<HTMLDivElement>(null);
-  const aboutAnchorRef = useRef<HTMLDivElement>(null);
+  const aboutTopAnchorRef = useRef<HTMLDivElement>(null);
   const workTransitionRef = useRef<HTMLElement>(null);
   const galleryRef = useRef<HTMLElement>(null);
   const finalSpreadRef = useRef<HTMLElement>(null);
@@ -689,58 +691,6 @@ export function PhotographyPortfolio() {
       cleanup();
     };
   }, [selectedPhoto]);
-
-  useEffect(() => {
-    const section = locationsRef.current;
-    const anchor = aboutAnchorRef.current;
-    const transition = workTransitionRef.current;
-    const gallery = galleryRef.current;
-    if (!section || !anchor || !transition || !gallery) return;
-
-    let frame = 0;
-    const updateReady = () => {
-      frame = 0;
-      const rect = section.getBoundingClientRect();
-      const transitionRect = transition.getBoundingClientRect();
-      const galleryRect = gallery.getBoundingClientRect();
-      const finalRect = finalSpreadRef.current?.getBoundingClientRect();
-      const stickyTop = Number.parseFloat(window.getComputedStyle(anchor).top) || 0;
-      const transitionInView = transitionRect.top <= stickyTop + 96 && transitionRect.bottom >= stickyTop;
-      const documentBottom = document.documentElement.scrollHeight - window.innerHeight;
-      const nearPageBottom = window.scrollY >= documentBottom - 8;
-      const finalProgress =
-        finalRect && finalRect.top <= stickyTop
-          ? Math.min(1, Math.max(0, (stickyTop - finalRect.top) / Math.max(1, finalRect.height - window.innerHeight * 0.18)))
-          : 0;
-      const finalInMainView = finalRect ? finalRect.top <= stickyTop + window.innerHeight * 0.72 : false;
-      const finalIsDark = finalProgress > 0.86 || nearPageBottom;
-      const finalIsLight = finalInMainView && finalProgress <= 0.86;
-      const nextReady = rect.top <= stickyTop + 2 && !transitionInView && !finalInMainView;
-      const nextOnDark = (galleryRect.top <= stickyTop + 24 && !finalIsLight) || finalIsDark;
-
-      setAboutReady(nextReady);
-      setAboutOnDark(nextOnDark);
-      if (!nextReady) {
-        setAboutOpen(false);
-        setSelectedSocialQrId(null);
-      }
-    };
-
-    const requestUpdate = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(updateReady);
-    };
-
-    updateReady();
-    window.addEventListener("scroll", requestUpdate, { passive: true });
-    window.addEventListener("resize", requestUpdate);
-
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", requestUpdate);
-      window.removeEventListener("resize", requestUpdate);
-    };
-  }, []);
 
   useEffect(() => {
     const section = workTransitionRef.current;
@@ -1254,6 +1204,58 @@ export function PhotographyPortfolio() {
   }, []);
 
   useEffect(() => {
+    const section = locationsRef.current;
+    const anchor = aboutTopAnchorRef.current;
+    const transition = workTransitionRef.current;
+    const gallery = galleryRef.current;
+    if (!section || !anchor || !transition || !gallery) return;
+
+    let frame = 0;
+    const updateReady = () => {
+      frame = 0;
+      const rect = section.getBoundingClientRect();
+      const transitionRect = transition.getBoundingClientRect();
+      const galleryRect = gallery.getBoundingClientRect();
+      const finalRect = finalSpreadRef.current?.getBoundingClientRect();
+      const stickyTop = Number.parseFloat(window.getComputedStyle(anchor).top) || 0;
+      const transitionInView = transitionRect.top <= stickyTop + 96 && transitionRect.bottom >= stickyTop;
+      const documentBottom = document.documentElement.scrollHeight - window.innerHeight;
+      const nearPageBottom = window.scrollY >= documentBottom - 8;
+      const finalProgress =
+        finalRect && finalRect.top <= stickyTop
+          ? Math.min(1, Math.max(0, (stickyTop - finalRect.top) / Math.max(1, finalRect.height - window.innerHeight * 0.18)))
+          : 0;
+      const finalInMainView = finalRect ? finalRect.top <= stickyTop + window.innerHeight * 0.72 : false;
+      const finalIsDark = finalProgress > 0.86 || nearPageBottom;
+      const finalIsLight = finalInMainView && finalProgress <= 0.86;
+      const nextReady = rect.top <= stickyTop + 2 && !transitionInView && !finalInMainView;
+      const nextOnDark = (galleryRect.top <= stickyTop + 24 && !finalIsLight) || finalIsDark;
+
+      setAboutReady(nextReady);
+      setAboutOnDark(nextOnDark);
+      if (!nextReady) {
+        setAboutOpen(false);
+        setSelectedSocialQrId(null);
+      }
+    };
+
+    const requestUpdate = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateReady);
+    };
+
+    updateReady();
+    window.addEventListener("scroll", requestUpdate, { passive: true });
+    window.addEventListener("resize", requestUpdate);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", requestUpdate);
+      window.removeEventListener("resize", requestUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
     const section = finalSpreadRef.current;
     if (!section) return;
 
@@ -1276,6 +1278,7 @@ export function PhotographyPortfolio() {
 
         if (reduceMotion) {
           if (sheet) gsap.set(sheet, { y: 0, clearProps: "transform" });
+          setFinalAboutVisible(true);
           gsap.set(section, {
             "--final-stage-dim": 1,
             "--final-edge-shadow": 0,
@@ -1286,6 +1289,7 @@ export function PhotographyPortfolio() {
           return;
         }
 
+        setFinalAboutVisible(false);
         gsap.set(section, {
           "--final-stage-dim": 0,
           "--final-edge-shadow": 0.56,
@@ -1315,6 +1319,7 @@ export function PhotographyPortfolio() {
         const revealFinalWords = () => {
           if (finalWordsVisible) return;
           finalWordsVisible = true;
+          setFinalAboutVisible(true);
           gsap.to(finalWords, {
             autoAlpha: 1,
             y: 0,
@@ -1329,6 +1334,7 @@ export function PhotographyPortfolio() {
         const hideFinalWords = () => {
           if (!finalWordsVisible) return;
           finalWordsVisible = false;
+          setFinalAboutVisible(false);
           gsap.to(finalWords, {
             autoAlpha: 0,
             y: 20,
@@ -1444,9 +1450,9 @@ export function PhotographyPortfolio() {
         </svg>
       </div>
 
-      <div className="about-float-anchor" ref={aboutAnchorRef}>
+      <div className="about-top-anchor" ref={aboutTopAnchorRef}>
         <button
-          className={`about-float${aboutReady ? " is-visible" : ""}${aboutOpen ? " is-open" : ""}${aboutOnDark ? " is-on-dark" : ""}`}
+          className={`about-top-link${aboutReady ? " is-visible" : ""}${aboutOpen ? " is-open" : ""}${aboutOnDark ? " is-on-dark" : ""}`}
           type="button"
           aria-expanded={aboutOpen}
           aria-controls="about-social-panel"
@@ -1498,6 +1504,12 @@ export function PhotographyPortfolio() {
         </div>
       </div>
 
+      <div className="about-float-anchor">
+        <Link className={`about-float${finalAboutVisible ? " is-visible" : ""}`} href="/about" aria-label="Open about page">
+          <span>about</span>
+        </Link>
+      </div>
+
       {selectedSocialQr ? (
         <div className="about-qr-lightbox" role="dialog" aria-modal="true" aria-label={`${selectedSocialQr.label} QR code preview`}>
           <button className="about-qr-lightbox__backdrop" type="button" aria-label="Close QR preview" onClick={() => setSelectedSocialQrId(null)} />
@@ -1521,7 +1533,7 @@ export function PhotographyPortfolio() {
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
             <video
-              src="/portfolio/videos/web6.mp4"
+              src="/portfolio/videos/web7.mp4"
               poster={portfolioPhotos[0].src}
               autoPlay
               muted
@@ -1602,7 +1614,7 @@ export function PhotographyPortfolio() {
             <div className="photo-final-minimal" aria-label="All shot on Fujifilm XH2">
               {finalCreditWords.map((word) => (
                 <span
-                  className={`photo-final-word${word === "XH2" ? " photo-final-word-xh2" : ""}`}
+                  className={`photo-final-word${word === "FUJIFILM" ? " photo-final-word-fuji" : ""}${word === "XH2" ? " photo-final-word-xh2" : ""}`}
                   key={word}
                   aria-label={word}
                   onMouseEnter={word === "XH2" ? () => setIsXh2PreviewVisible(true) : undefined}
@@ -1614,7 +1626,20 @@ export function PhotographyPortfolio() {
                     {word}
                   </span>
                   <span className="photo-final-word-face photo-final-word-face-next" aria-hidden="true">
-                    {word}
+                    {word === "FUJIFILM" ? (
+                      <span className="photo-final-fuji-mark">
+                        <NextImage
+                          className="photo-final-fuji-logo"
+                          src="/portfolio/brand/fujifilm-official-wordmark-transparent.png"
+                          alt=""
+                          width={924}
+                          height={263}
+                          sizes="(max-width: 900px) 42vw, 18vw"
+                        />
+                      </span>
+                    ) : (
+                      word
+                    )}
                   </span>
                 </span>
               ))}
