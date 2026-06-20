@@ -1,0 +1,502 @@
+[
+  {
+    "id": 1,
+    "title": "More photo 01",
+    "originalName": "ChatGPT Image 2026年6月4日 23_15_44.png",
+    "src": "/portfolio/more/more-01.webp",
+    "width": 1537,
+    "height": 1023,
+    "orientation": "landscape",
+    "ratio": 1.5024
+  },
+  {
+    "id": 2,
+    "title": "More photo 02",
+    "originalName": "DSCF0107.jpg",
+    "src": "/portfolio/more/more-02.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 3,
+    "title": "More photo 03",
+    "originalName": "DSCF0393.jpg",
+    "src": "/portfolio/more/more-03.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 4,
+    "title": "More photo 04",
+    "originalName": "DSCF0406.jpg",
+    "src": "/portfolio/more/more-04.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 5,
+    "title": "More photo 05",
+    "originalName": "DSCF0496.jpg",
+    "src": "/portfolio/more/more-05.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 6,
+    "title": "More photo 06",
+    "originalName": "DSCF0504.jpg",
+    "src": "/portfolio/more/more-06.webp",
+    "width": 1600,
+    "height": 681,
+    "orientation": "landscape",
+    "ratio": 2.3495
+  },
+  {
+    "id": 7,
+    "title": "More photo 07",
+    "originalName": "DSCF0525.jpg",
+    "src": "/portfolio/more/more-07.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 8,
+    "title": "More photo 08",
+    "originalName": "DSCF0667.jpg",
+    "src": "/portfolio/more/more-08.webp",
+    "width": 1600,
+    "height": 900,
+    "orientation": "landscape",
+    "ratio": 1.7778
+  },
+  {
+    "id": 9,
+    "title": "More photo 09",
+    "originalName": "DSCF0671.jpg",
+    "src": "/portfolio/more/more-09.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 10,
+    "title": "More photo 10",
+    "originalName": "DSCF0727.jpg",
+    "src": "/portfolio/more/more-10.webp",
+    "width": 1600,
+    "height": 1200,
+    "orientation": "landscape",
+    "ratio": 1.3333
+  },
+  {
+    "id": 11,
+    "title": "More photo 11",
+    "originalName": "DSCF0871.jpg",
+    "src": "/portfolio/more/more-11.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 12,
+    "title": "More photo 12",
+    "originalName": "DSCF1338.jpg",
+    "src": "/portfolio/more/more-12.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 13,
+    "title": "More photo 13",
+    "originalName": "DSCF1368.jpg",
+    "src": "/portfolio/more/more-13.webp",
+    "width": 1600,
+    "height": 1066,
+    "orientation": "landscape",
+    "ratio": 1.5009
+  },
+  {
+    "id": 14,
+    "title": "More photo 14",
+    "originalName": "DSCF1410.jpg",
+    "src": "/portfolio/more/more-14.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 15,
+    "title": "More photo 15",
+    "originalName": "DSCF1461.jpg",
+    "src": "/portfolio/more/more-15.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 16,
+    "title": "More photo 16",
+    "originalName": "DSCF1830.jpg",
+    "src": "/portfolio/more/more-16.webp",
+    "width": 1066,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6663
+  },
+  {
+    "id": 17,
+    "title": "More photo 17",
+    "originalName": "DSCF2204.jpg",
+    "src": "/portfolio/more/more-17.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 18,
+    "title": "More photo 18",
+    "originalName": "DSCF2218.jpg",
+    "src": "/portfolio/more/more-18.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 19,
+    "title": "More photo 19",
+    "originalName": "DSCF2247.jpg",
+    "src": "/portfolio/more/more-19.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 20,
+    "title": "More photo 20",
+    "originalName": "DSCF2441.jpg",
+    "src": "/portfolio/more/more-20.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 21,
+    "title": "More photo 21",
+    "originalName": "DSCF2610.jpg",
+    "src": "/portfolio/more/more-21.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 22,
+    "title": "More photo 22",
+    "originalName": "DSCF3725.jpg",
+    "src": "/portfolio/more/more-22.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 23,
+    "title": "More photo 23",
+    "originalName": "DSCF3770.jpg",
+    "src": "/portfolio/more/more-23.webp",
+    "width": 1600,
+    "height": 1077,
+    "orientation": "landscape",
+    "ratio": 1.4856
+  },
+  {
+    "id": 24,
+    "title": "More photo 24",
+    "originalName": "DSCF3981.jpg",
+    "src": "/portfolio/more/more-24.webp",
+    "width": 1600,
+    "height": 1600,
+    "orientation": "square",
+    "ratio": 1
+  },
+  {
+    "id": 25,
+    "title": "More photo 25",
+    "originalName": "DSCF3985.jpg",
+    "src": "/portfolio/more/more-25.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 26,
+    "title": "More photo 26",
+    "originalName": "DSCF4177.jpg",
+    "src": "/portfolio/more/more-26.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 27,
+    "title": "More photo 27",
+    "originalName": "DSCF4567.jpg",
+    "src": "/portfolio/more/more-27.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 28,
+    "title": "More photo 28",
+    "originalName": "DSCF4575.jpg",
+    "src": "/portfolio/more/more-28.webp",
+    "width": 1600,
+    "height": 1280,
+    "orientation": "landscape",
+    "ratio": 1.25
+  },
+  {
+    "id": 29,
+    "title": "More photo 29",
+    "originalName": "DSCF4703 1.jpg",
+    "src": "/portfolio/more/more-29.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 30,
+    "title": "More photo 30",
+    "originalName": "DSCF4992.jpg",
+    "src": "/portfolio/more/more-30.webp",
+    "width": 1600,
+    "height": 1200,
+    "orientation": "landscape",
+    "ratio": 1.3333
+  },
+  {
+    "id": 31,
+    "title": "More photo 31",
+    "originalName": "DSCF5050.jpg",
+    "src": "/portfolio/more/more-31.webp",
+    "width": 1600,
+    "height": 681,
+    "orientation": "landscape",
+    "ratio": 2.3495
+  },
+  {
+    "id": 32,
+    "title": "More photo 32",
+    "originalName": "DSCF5493.jpg",
+    "src": "/portfolio/more/more-32.webp",
+    "width": 1600,
+    "height": 893,
+    "orientation": "landscape",
+    "ratio": 1.7917
+  },
+  {
+    "id": 33,
+    "title": "More photo 33",
+    "originalName": "DSCF5592.jpg",
+    "src": "/portfolio/more/more-33.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 34,
+    "title": "More photo 34",
+    "originalName": "DSCF5692.jpg",
+    "src": "/portfolio/more/more-34.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 35,
+    "title": "More photo 35",
+    "originalName": "DSCF5855.jpg",
+    "src": "/portfolio/more/more-35.webp",
+    "width": 1600,
+    "height": 681,
+    "orientation": "landscape",
+    "ratio": 2.3495
+  },
+  {
+    "id": 36,
+    "title": "More photo 36",
+    "originalName": "DSCF5969-DeNoiseAI-clear.jpg",
+    "src": "/portfolio/more/more-36.webp",
+    "width": 1600,
+    "height": 1600,
+    "orientation": "square",
+    "ratio": 1
+  },
+  {
+    "id": 37,
+    "title": "More photo 37",
+    "originalName": "DSCF6059 1.jpg",
+    "src": "/portfolio/more/more-37.webp",
+    "width": 1067,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.6669
+  },
+  {
+    "id": 38,
+    "title": "More photo 38",
+    "originalName": "DSCF6090 1.jpg",
+    "src": "/portfolio/more/more-38.webp",
+    "width": 1600,
+    "height": 1280,
+    "orientation": "landscape",
+    "ratio": 1.25
+  },
+  {
+    "id": 39,
+    "title": "More photo 39",
+    "originalName": "DSCF6173.jpg",
+    "src": "/portfolio/more/more-39.webp",
+    "width": 1600,
+    "height": 1200,
+    "orientation": "landscape",
+    "ratio": 1.3333
+  },
+  {
+    "id": 40,
+    "title": "More photo 40",
+    "originalName": "DSCF6225.jpg",
+    "src": "/portfolio/more/more-40.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 41,
+    "title": "More photo 41",
+    "originalName": "DSCF7180 1.jpg",
+    "src": "/portfolio/more/more-41.webp",
+    "width": 1600,
+    "height": 900,
+    "orientation": "landscape",
+    "ratio": 1.7778
+  },
+  {
+    "id": 42,
+    "title": "More photo 42",
+    "originalName": "DSCF7204.jpg",
+    "src": "/portfolio/more/more-42.webp",
+    "width": 1600,
+    "height": 900,
+    "orientation": "landscape",
+    "ratio": 1.7778
+  },
+  {
+    "id": 43,
+    "title": "More photo 43",
+    "originalName": "DSCF7236.jpg",
+    "src": "/portfolio/more/more-43.webp",
+    "width": 1600,
+    "height": 1600,
+    "orientation": "square",
+    "ratio": 1
+  },
+  {
+    "id": 44,
+    "title": "More photo 44",
+    "originalName": "DSCF7386.jpg",
+    "src": "/portfolio/more/more-44.webp",
+    "width": 1600,
+    "height": 1600,
+    "orientation": "square",
+    "ratio": 1
+  },
+  {
+    "id": 45,
+    "title": "More photo 45",
+    "originalName": "DSCF8487.jpg",
+    "src": "/portfolio/more/more-45.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 46,
+    "title": "More photo 46",
+    "originalName": "DSCF8967.jpg",
+    "src": "/portfolio/more/more-46.webp",
+    "width": 1200,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.75
+  },
+  {
+    "id": 47,
+    "title": "More photo 47",
+    "originalName": "DSCF8987.jpg",
+    "src": "/portfolio/more/more-47.webp",
+    "width": 923,
+    "height": 923,
+    "orientation": "square",
+    "ratio": 1
+  },
+  {
+    "id": 48,
+    "title": "More photo 48",
+    "originalName": "IMG_0049.jpg",
+    "src": "/portfolio/more/more-48.webp",
+    "width": 1600,
+    "height": 1067,
+    "orientation": "landscape",
+    "ratio": 1.4995
+  },
+  {
+    "id": 49,
+    "title": "More photo 49",
+    "originalName": "IMG_1957.jpg",
+    "src": "/portfolio/more/more-49.webp",
+    "width": 898,
+    "height": 1600,
+    "orientation": "portrait",
+    "ratio": 0.5613
+  },
+  {
+    "id": 50,
+    "title": "More photo 50",
+    "originalName": "IMG_1986.jpg",
+    "src": "/portfolio/more/more-50.webp",
+    "width": 1600,
+    "height": 1066,
+    "orientation": "landscape",
+    "ratio": 1.5009
+  }
+]

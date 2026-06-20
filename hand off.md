@@ -1,275 +1,468 @@
 # Hand Off
 
-## 2026-06-16 Latest Handoff
+## Latest State - 2026-06-20
 
-### Current Preview
+This document is the current project handoff for `F:\Desktop\web-black`. It records the practical project knowledge, current visual direction, known pitfalls, preview status, and the latest `/more` animation work.
 
-- Production preview has been used repeatedly because the dev server on `3000`/`3100` sometimes served stale output or hit Windows `spawn EPERM`.
-- Latest successful preview command pattern:
-  - `npm.cmd run build`
-  - `node_modules\.bin\next.cmd start -p 3100`
-- Last known restarted production preview:
-  - `http://127.0.0.1:3100/`
-  - PID from latest restart during avatar/about work: `8760`.
-- If output appears stale, rebuild and restart `3100` before assuming source is wrong.
-- The in-app browser recently blocked one direct `127.0.0.1:3100` verification with a browser security policy message. Do not try to bypass that policy; use normal user refresh or shell/build verification if it happens again.
+## Latest Practical Update - 2026-06-20
 
-### Final Page FUJIFILM / ABOUT State
+- The local preview is intended to run on `http://localhost:3000/`.
+- A stuck Next dev process was found on port `3000`: it was listening but requests to `http://localhost:3000/` timed out.
+- The stuck process was stopped and `npm.cmd run dev` was started again.
+- After restart, `http://localhost:3000/` returned `STATUS=200`.
+- If the in-app browser still shows an old error page, first re-enter `http://localhost:3000/` in the address bar or open a fresh tab. Do not immediately assume app code is broken.
+- Current `/more` work before this handoff:
+  - The faint BIN loader behind the opening photo stack was fixed by hiding the loader earlier and setting `display: none`.
+  - The two photos left after the opening explosion no longer do an extra "pulled back to track" tween. Their explosion end position is now the same as the track start position.
+  - The leading/opening hold photos were changed to photo IDs `3` and `8` from `src/data/more-photos.json`.
+  - Typecheck, lint, and build passed after the change.
 
-- Final page still uses the white minimal sheet and four corner words:
+## Project Overview
+
+- Project: BIN personal photography portfolio site.
+- Workspace: `F:\Desktop\web-black`.
+- Framework: Next.js 16.2.1 with React 19.2.4.
+- Styling: Tailwind CSS 4 plus project CSS in `src/app/globals.css`.
+- Animation: GSAP 3.13.0. Homepage gallery uses GSAP + ScrollTrigger. `/more` uses GSAP ticker/timeline directly.
+- Main page route: `src/app/page.tsx`.
+- Main portfolio component: `src/components/photography-portfolio.tsx`.
+- Global styles: `src/app/globals.css`.
+- About route: `src/app/about/page.tsx`.
+- More route: `src/app/more/page.tsx`.
+- Main photo manifest: `src/data/portfolio-photos.json`.
+- More photo manifest: `src/data/more-photos.json`.
+- Used homepage photo assets: `public/portfolio/photos/`.
+- Used `/more` photo assets: `public/portfolio/more/`.
+- Original source photos: `Photos/` must stay ignored and unuploaded unless the user explicitly asks.
+- Extra `/more` source photos: `Photos/photoext/`.
+
+## Agent / Collaboration Rules
+
+- Default language with the user: Chinese.
+- Before modifying files, running commands, or accessing accounts, explain the purpose and risk in plain language.
+- Do not batch-delete files or folders.
+- Never delete source code, `Photos/`, `public/portfolio/photos/`, `public/portfolio/social/`, `public/portfolio/more/`, `src/`, `skills/`, `design-md-library/`, `node_modules/`, `.git/`, or user-provided assets unless the user explicitly names that exact target.
+- If cleanup is needed, only clean clearly disposable local artifacts after stating exact paths and risk. Allowed cleanup targets include `.next/`, `temp/`, local `*.log`, root Playwright screenshot PNGs, and generated dev-server logs.
+- The working tree may contain user or prior-agent edits. Do not revert unrelated changes.
+- For animation work, read relevant GSAP skills first when required by the current environment.
+- For Next.js 16 framework-level edits, read the relevant guide under `node_modules/next/dist/docs/` first.
+
+## Preview / Server Rules
+
+- Normal dev command: `npm run dev`.
+- Normal dev URL: `http://localhost:3000/`.
+- LAN URL: `http://192.168.31.180:3000/`.
+- Port `3000` is the correct routine preview port.
+- Do not use `Start-Job`, `start /b`, `Start-Process`, hidden windows, or any background launch method for this project preview unless the user explicitly asks.
+- Keep the shell running `npm run dev` open in the foreground.
+- If the dev process exits and the user asked for it to remain available, restart with the same foreground `npm run dev`.
+- Before starting or restarting preview, check port `3000`:
+  - `netstat -ano | Select-String ':3000'`
+- If port `3000` is listening but browser requests hang, treat it as a stuck Next process or stale browser state, not automatically as broken site code.
+- Avoid repeated restarts; the user was frustrated because earlier agents spent too long on server handling.
+- Do not switch routine preview work to `3100`. `dev:local` still exists in `package.json`, but current project guidance is to use port `3000`.
+- `next.config.ts` currently includes:
+  - `allowedDevOrigins: ["192.168.31.180"]`
+  - `output: "standalone"`
+- The LAN `allowedDevOrigins` entry is important; without it, Next dev resources such as HMR can be blocked from `192.168.31.180`.
+- Avoid clearing `.next/` during ordinary visual tuning. Clearing `.next/` forces a cold rebuild and should only happen after stating the exact path and risk.
+
+## Commands
+
+- `npm run dev` - foreground development server on port `3000`.
+- `npm run build` - production build.
+- `npm run lint` - ESLint check.
+- `npm run typecheck` - TypeScript check.
+- `npm run check` - lint + typecheck + build.
+- In this environment, `npm.cmd run ...` is the safest PowerShell form.
+
+## Known Technical Pitfalls
+
+- A previous major blocker was a Next/HTTP `ByteString` error caused by non-ASCII characters in resource paths. Keep public asset URLs ASCII-only.
+- `src/data/portfolio-photos.json` should keep `src` values like `/portfolio/photos/01-DSCF0436.jpg`, not Chinese filenames or paths.
+- Display text can be Chinese, but URLs and public resource paths should stay ASCII.
+- Another previous blocker was cross-origin dev-resource blocking on LAN. Keep `allowedDevOrigins: ["192.168.31.180"]`.
+- Windows Playwright/Chromium may fail with `spawn EPERM`; if visual QA is essential, use a one-off escalated command after explaining risk.
+- In-app browser can hold stale localhost failures in `CLOSE_WAIT` / `FIN_WAIT_2`. Re-enter the URL or use a fresh tab before assuming the code is wrong.
+- `Get-CimInstance` / `tasklist` process inspection can be blocked by Windows permissions.
+- `Start-Process` can fail in this workspace because of duplicate `Path` / `PATH` environment keys. Do not infer site code failure from that.
+
+## Current Visual Direction
+
+The site is a BIN-branded personal photography portfolio. It should feel photographic, minimal, cinematic, and premium rather than like a SaaS/marketing page.
+
+Homepage direction:
+
+- Intro: black screen, small premium white `BIN`, hollow/masked reveal, then forward exit.
+- Hero: full-screen image with oversized split `B`, `I`, `N`.
+- Location section: `src/components/tube-text-scroll.tsx`.
+- Work/gallery: dark grayscale motion-blur mood, HUD/REC details, soft blurred `MY WORK`, floating photo cards, red scroll glow, smooth motion.
+- Avoid loud UI cards, decorative blobs, marketing copy, or dense explanatory text.
+
+Current broader references:
+
+- Kookie-inspired homepage/gallery direction.
+- Brady Perron-inspired `/more` photo field.
+
+## Homepage / Main Portfolio
+
+- Main implementation lives mostly in `src/components/photography-portfolio.tsx`.
+- Do not reintroduce whole-page wheel hijacking or broad `preventDefault` scroll inertia on the homepage.
+- Prefer local ScrollTrigger scrub, CSS transforms, and scoped velocity effects.
+- Gallery red glow is driven by `--scroll-glow` on `.photo-gallery-scene`.
+- Caption/bottom strip animation should remain linked to each `.photo-card` timeline.
+- The final white page includes minimal camera text:
   - `ALL`
   - `SHOT ON`
   - `FUJIFILM`
   - `XH2`
-- The `FUJIFILM` hover state now uses an official wordmark image derived from the user-provided logo screenshot:
-  - Original copied asset: `public/portfolio/brand/fujifilm-official-wordmark.png`
-  - Transparent-background processed asset: `public/portfolio/brand/fujifilm-official-wordmark-transparent.png`
-  - Current JSX source: `src/components/photography-portfolio.tsx`
-  - Current CSS source: `src/app/globals.css`
-- The transparent PNG was generated locally by making near-white pixels transparent. This removed the visible white rectangle around the logo.
-- Reminder: the user explicitly accepted using the official FUJIFILM mark. It still carries trademark/authorization risk.
-- The final-page `about` link is fixed at bottom right but only appears when the final words are revealed:
-  - React state: `finalAboutVisible`
-  - Set true in `revealFinalWords`
-  - Set false in `hideFinalWords`
-  - `prefers-reduced-motion: reduce` shows it immediately with final words.
-- `about` is not a gray button now. It is a tiny serif text link in the lower-right corner, styled like the provided reference.
-- Clicking it routes to `/about`.
+- Final page `ABOUT` link appears bottom-right after the final words reveal.
+- Clicking `ABOUT` routes to `/about`.
+- `src/components/bulge-text-effect.tsx` may still exist but is not part of the current final-page direction.
 
-### About Page Current State
+## Intro Alignment Notes
 
-- New route exists: `src/app/about/page.tsx`.
-- Current `/about` layout:
-  - Left-lower identity block: `ABOUT` and large serif `BIN`.
-  - Right-side avatar image.
-  - Right-side social link list with two placeholder links:
-    - `小红书`
-    - `抖音`
-  - Bottom-right `back` link to `/`.
-- The user asked to remove only the extra top/bottom contact elements:
-  - Removed `( contact )`.
-  - Removed `Photography / Archive / Daily Notes`.
-  - Kept `小红书` and `抖音`.
-- The user provided avatar source file:
-  - `F:\Desktop\binbin yaya .jpg`
-- Copied full avatar asset:
-  - `public/portfolio/about/binbin-yaya.jpg`
-- Cropped duck-only asset:
-  - `public/portfolio/about/binbin-yaya-duck.jpg`
-  - Crop used top portion only: `2481 x 2350`, removing the bottom `for bin` text.
-- Current `/about` uses `binbin-yaya-duck.jpg`.
-- Current CSS classes:
-  - `.about-page`
-  - `.about-page__content`
-  - `.about-page__avatar`
-  - `.about-page__social`
-  - `.about-page__back`
-- The social links currently use `href="#"` placeholders. Replace them once the user provides real Xiaohongshu/Douyin URLs.
+The intro uses one shared SVG coordinate system. Keep these aligned:
 
-### Recent Verification
+- `introWordRef`
+- `introOutlineRef`
+- `introMaskTextRef`
+- `introMaskRef`
+
+Shared text coordinates:
+
+- `x="600"`
+- `y="522"`
+- `textAnchor="middle"`
+- `dominantBaseline="middle"`
+
+GSAP transform center should match:
+
+```ts
+translate(600 522) scale(...) translate(-600 -522)
+```
+
+If the intro feels wrong, first tune SVG `y`, font size, letter spacing, outline stroke width, GSAP durations/eases/scale, before splitting layers into separate HTML elements.
+
+## About Page
+
+Files:
+
+- Route: `src/app/about/page.tsx`.
+- Styles: `src/app/globals.css`.
+- Current avatar asset: `public/portfolio/about/binbin-yaya-duck.jpg`.
+- Original user-provided image source was `F:\Desktop\binbin yaya .jpg`; do not modify or delete it.
+
+Current layout:
+
+- Minimal white page.
+- Header:
+  - left: `about - bin`
+  - right: `close`, linking back to `/`.
+- Left contact/social block:
+  - label: `( contact )`
+  - social links are placeholders unless the user provides real URLs.
+- Right visual block:
+  - duck avatar image.
+  - large black `BIN` under the avatar.
+- Footer and old descriptive role line were removed.
+- The large intro sentence was removed.
+
+Responsive notes:
+
+- Avatar and `BIN` should behave as one responsive composition.
+- Size is constrained by viewport width and viewport height through CSS variables:
+  - `--about-avatar-width`
+  - `--about-avatar-top`
+  - `--about-brand-size`
+  - `--about-brand-margin`
+- Additional rules exist for:
+  - very wide screens: `@media (min-aspect-ratio: 17 / 9)`
+  - short desktop screens: `@media (max-height: 760px) and (min-width: 921px)`
+  - mobile/tablet: `@media (max-width: 920px)`
+- There are inline CSS-variable fallbacks in `src/app/about/page.tsx`. They were added because dev preview sometimes served stale CSS. Keep them unless the preview pipeline becomes consistently stable.
+
+Typography notes:
+
+- `BIN` uses a heavy black luxury-editorial style:
+  - `"Arial Black", "Helvetica Neue", Arial, sans-serif`
+  - tight negative tracking
+  - horizontal scale
+- The user wanted a feeling similar to a bold black/red `ILCAPO` reference, but rendered as black `BIN`.
+- Chinese social font direction should be rounder and softer:
+  - `"PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif`
+
+## More Page
+
+Purpose:
+
+- `/more` is an extra photo preview field opened from the bottom `more` link.
+- It is inspired by `https://www.bradyperron.com/`.
+- The user specifically wanted:
+  - white background.
+  - a small central stack of photos at first.
+  - photos quickly stack from one center point.
+  - then explode/scatter outward.
+  - after scatter, the photo field drifts slowly like an infinite preview canvas.
+  - mouse wheel should not behave like normal page scroll; it should add acceleration to the photo field.
+  - wheel down speeds movement one way.
+  - wheel up reverses along the same tracks, with inertia decay.
+  - after a pause, movement continues forward along predefined routes.
+  - photos should not be a normal grid.
+  - photos should be mostly upright, with varied sizes/proportions and light overlap.
+
+Files:
+
+- Route: `src/app/more/page.tsx`.
+- Component: `src/components/more-photo-field.tsx`.
+- Scoped CSS module: `src/components/more-photo-field.module.css`.
+- Manifest: `src/data/more-photos.json`.
+- Generation script: `scripts/generate-more-photos.mjs`.
+- Public optimized assets: `public/portfolio/more/`.
+- Source folder: `Photos/photoext/`.
+
+Current `/more` page structure:
+
+- `src/app/more/page.tsx` renders `<MorePhotoField />`.
+- Fixed footer chrome:
+  - left brand link `BIN` back to `/`.
+  - right nav shows `list` text and `close` link back to `/`.
+- Hidden legacy header remains for accessibility/structure but is styled away.
+
+Current `/more` animation implementation:
+
+- Uses `useEffect`, `gsap.context`, GSAP timeline, and GSAP ticker.
+- Does not use React state for per-frame animation.
+- Cards are centered with `xPercent: -50`, `yPercent: -50`.
+- Initial all-card state:
+  - `autoAlpha: 0`
+  - `scale: 0.34`
+  - `x: 0`
+  - `y: 0`
+  - `rotation: 0`
+- Opening sequence:
+  - loader mark `BIN` appears.
+  - loader line scales in.
+  - the first 12 cards appear from the center as a large, solid, layered stack.
+  - loader is hidden early with `autoAlpha: 0` and then `display: none`, so it should not remain faintly visible behind photos.
+  - the first 12 cards scatter outward.
+  - 10 retiring intro cards scatter offscreen and are hidden.
+  - 2 hold cards remain, and their scatter end position is already the track start position.
+  - ticker starts continuous drift.
+- Current intro stack size: `introStackSize = 12`.
+- Current intro hold size: `introHoldSize = 2`.
+- Current leading/hold photos are controlled by `introLeadPhotoIds = [3, 8]`.
+- Those photos are moved to the front through `orderedMorePhotos`; the manifest and asset files are not rewritten.
+- Current chosen hold photos:
+  - ID `3`: `/portfolio/more/more-03.webp`, night street light trails.
+  - ID `8`: `/portfolio/more/more-08.webp`, portrait by the sea with hat.
+- `activeGroupSize = 4`.
+- `routeCount = 5`.
+- `trackSegment = 1180`.
+- `trackSlotSpacing = trackSegment / activeGroupSize`.
+- `initialTrackProgress = trackSlotSpacing * (introHoldSize - 0.5)`.
+- Photos are not currently grouped into hard visible groups. All photos are laid onto route progress, and off-viewport cards are hidden by viewport culling.
+- `isTrackCardNearViewport()` uses measured card dimensions and a margin so cards do not disappear too early at screen edges.
+- A prior bug where cards looked extremely small was fixed by setting rendered track cards to `scale: 1`.
+- Current image sizes were enlarged after the user said overall screen occupancy should be bigger:
+  - hero width: `45vw`, max `980px`.
+  - portrait width: about `25vw` to `29.05vw`, max `620px`.
+  - landscape width: about `34vw` to `40.6vw`, max `880px`.
+  - image `sizes`: `(max-width: 760px) 82vw, 48vw`.
+- Rotation is currently kept at `0` because the user said photos should be straight, not tilted.
+- Current movement routes:
+  - route 0: left to right in upper area.
+  - route 1: right to left around mid area.
+  - route 2: top to bottom with slight horizontal drift.
+  - route 3: diagonal from lower-left toward upper-right.
+  - route 4/default: diagonal from upper-right toward lower-left.
+- Slow base drift:
+  - `state.progress += (0.44 + state.velocity) * delta`.
+- Wheel acceleration:
+  - `event.preventDefault()` is scoped only to `/more` root.
+  - `state.velocity += event.deltaY * 0.018`.
+  - clamped to `-24` to `32`.
+  - decays by `Math.pow(0.91, delta)`.
+- `prefers-reduced-motion`:
+  - loader hidden and set to `display: none`.
+  - cards are placed directly on their track positions.
+  - cards use `scale: 1` and no continuous ticker motion.
+
+Important `/more` tuning history:
+
+- User first wanted a Brady Perron-like photo field.
+- First attempt was too stacked/dense.
+- Then scatter was made more route-based.
+- Then it became too empty or had no follow-up images.
+- Then it became too dense again.
+- The user wanted the intro to feel closer to Brady Perron:
+  - photos should first appear concentrated in the center.
+  - the stack should be larger and clearer, not tiny/faint.
+  - the scatter should have weight and smoothness.
+  - after scatter, most photos should leave the screen, with only one or two around visual center.
+- A later issue was that some entering track photos faded in. The user wanted photos entering the viewport to appear directly, not as transparent fade-ins.
+- The most recent issue was:
+  - the BIN loader remained faintly visible behind the photo stack.
+  - the two remaining photos did an extra "return to track" pull before drift began.
+  - the initial two photos should be swapped for other photos.
+- Latest fix:
+  - loader now hides earlier and gets `display: none`.
+  - hold cards now use the track start coordinate as the release endpoint.
+  - the extra hold-card tween back to track was removed.
+  - opening hold photos now use IDs `3` and `8`.
+
+Likely next `/more` tuning direction:
+
+- Preserve the current broad behavior: center stack -> outward scatter -> 2 hold photos -> direct track drift.
+- If the user reports a "jump" after the scatter, inspect `getIntroReleasePosition()` and `initialTrackProgress` first.
+- If the user wants different opening photos, change `introLeadPhotoIds`, not file names or manifest order.
+- If the user says it is too empty, do not simply show all 50 at once. Tune `trackSegment`, route offsets, viewport culling margin, or track start progress first.
+- If photos still feel too small, first adjust `widthVw` and `maxWidth` in `getTrackPhotos()`.
+- If photos feel too sparse, adjust `trackSegment` down slightly, or make route positions pass more centrally.
+- If photos pop too abruptly at edges, adjust `isTrackCardNearViewport()` margin. Be careful with opacity fades because the user specifically disliked visible fade-in for entering photos.
+- Keep transforms and opacity only for performance.
+
+## Asset Pipeline
+
+Main gallery:
+
+- Manifest: `src/data/portfolio-photos.json`.
+- Public assets: `public/portfolio/photos/`.
+- Keep `src` values ASCII-only.
+
+More gallery:
+
+- Source: `Photos/photoext/`.
+- Generated public assets: `public/portfolio/more/`.
+- Manifest: `src/data/more-photos.json`.
+- Script: `scripts/generate-more-photos.mjs`.
+- The user compressed the 50 source images before continuing the `/more` work.
+- Do not delete or overwrite original source images unless explicitly instructed.
+
+Video / brand assets:
+
+- Hero video reference: `/portfolio/videos/web7.mp4`.
+- Relevant video file: `public/portfolio/videos/web7.mp4`.
+- FUJIFILM wordmark assets:
+  - `public/portfolio/brand/fujifilm-official-wordmark.png`
+  - `public/portfolio/brand/fujifilm-official-wordmark-transparent.png`
+- X-H2 product image:
+  - `public/portfolio/camera/xh2-front-cmos.webp`
+- Reminder: official brand marks may carry trademark/authorization risk. The user previously accepted this direction.
+
+## Current Modified / New Files To Be Aware Of
+
+Git status has included these modified tracked files:
+
+- `AGENTS.md`
+- `hand off.md`
+- `next.config.ts`
+- `src/app/about/page.tsx`
+- `src/app/globals.css`
+- `src/components/photography-portfolio.tsx`
+- `src/data/portfolio-photos.json`
+
+Git status has also included these untracked/new paths:
+
+- `public/portfolio/more/`
+- `scripts/generate-more-photos.mjs`
+- `src/app/more/`
+- `src/components/more-photo-field.module.css`
+- `src/components/more-photo-field.tsx`
+- `src/data/more-photos.json`
+
+Treat the working tree as dirty. Do not revert unrelated changes.
+
+## Verification History
+
+Recent checks during latest `/more` work:
 
 - `npm.cmd run typecheck` passed.
-- `npm.cmd run lint` passed with the same 3 existing warnings:
-  - missing dependency warning for `closePhotoDetail`,
+- `npm.cmd run lint` passed with 3 existing warnings:
+  - missing dependency warning for `closePhotoDetail` in `src/components/photography-portfolio.tsx`.
   - two `@next/next/no-img-element` warnings in `src/components/photography-portfolio.tsx`.
-- `npm.cmd run build` passed and includes:
+- `npm.cmd run build` passed.
+- Build route output included:
   - `/`
   - `/_not-found`
   - `/about`
-- Browser verification before the latest security block confirmed:
-  - About button hidden initially and visible on final page reveal.
-  - About route renders.
-  - Avatar image was previously loaded at `/about`.
-- After the final duck-only crop/social-list change, shell verification and build passed; browser verification was not repeated because of the prior browser security block.
+  - `/more`
+- Build warning still appears:
+  - `metadataBase property in metadata export is not set... using "http://localhost:3000"`.
+- This warning is not related to the `/more` animation.
+- Browser visual verification through the in-app browser was blocked once by browser security policy for `http://localhost:3000`; do not treat that as app failure.
 
-### Current Files Most Relevant
+Latest preview recovery:
 
-- `src/components/photography-portfolio.tsx`
-- `src/app/globals.css`
-- `src/app/about/page.tsx`
-- `public/portfolio/brand/fujifilm-official-wordmark.png`
-- `public/portfolio/brand/fujifilm-official-wordmark-transparent.png`
-- `public/portfolio/about/binbin-yaya.jpg`
-- `public/portfolio/about/binbin-yaya-duck.jpg`
-- `public/portfolio/videos/web7.mp4`
+- `netstat -ano | Select-String ':3000'` showed port `3000` listening but `Invoke-WebRequest http://localhost:3000/` timed out.
+- The stuck Node process was stopped.
+- `npm.cmd run dev` was run again.
+- After restart, `Invoke-WebRequest http://localhost:3000/` returned `STATUS=200`.
+- If this happens again, first confirm:
+  - port `3000` is listening.
+  - shell request to `http://localhost:3000/` returns `200`.
+  - the in-app browser is not showing a stale failed page.
 
-### Notes For Next Agent
+Earlier checks:
 
-- Do not delete or crop the original `F:\Desktop\binbin yaya .jpg`.
-- Do not remove `小红书` / `抖音`; user specifically clarified those should remain.
-- Do remove/keep removed the extra `( contact )` label and bottom descriptive line on `/about`.
-- The `/about` page should remain quiet and minimal, with large negative space.
-- If adding real social links later, replace the `href="#"` placeholders in `src/app/about/page.tsx`.
-- Avoid reintroducing the old QR-code popover on the homepage unless the user explicitly asks.
-- Avoid making the `about` link global; it should appear only on the final page when the final text appears.
+- `npm run dev` successfully opened the site at `http://192.168.31.180:3000/`.
+- Shell request to `http://192.168.31.180:3000/about` returned `200`.
+- `src/data/portfolio-photos.json` was checked: public `src` paths existed and were ASCII-only.
 
-## 2026-06-13 Latest Handoff
+## Recommended Visual QA
 
-### Current Preview
+If validating manually:
 
-- Project documented preview URL: `http://localhost:3100/`.
-- Preview command: `npm.cmd run dev:local`.
-- User has also run a local preview at `http://localhost:3000/` during the latest camera/hero-video work.
-- If checking visuals, first confirm which preview server is currently active before assuming stale output.
-- `.next/` was cleared a few times because Next/Turbopack served stale CSS after edits. This was only cache cleanup, not source deletion.
+- Ask the user to refresh their existing foreground `npm run dev` page.
+- Do not start a second dev server.
+- Check:
+  - `http://192.168.31.180:3000/`
+  - `http://192.168.31.180:3000/about`
+  - `http://192.168.31.180:3000/more`
 
-### Final Page Current Direction
+Useful viewport sizes:
 
-- Final page target: a white minimal sheet rising from the dark gallery background.
-- The dark background behind the final sheet now inherits the gallery's black photographic language:
-  - dark layered gradients,
-  - subtle scanline texture,
-  - soft gallery-like light haze,
-  - no photo reflection.
-- The previous standalone gray block was removed because it felt visually disconnected from the gallery.
+- `1728 x 992`
+- `1440 x 900`
+- `1156 x 816`
+- `1024 x 768`
+- `390 x 844`
 
-### Final Sheet Motion
+For `/more`, specifically inspect:
 
-- Final sheet is implemented in `src/components/photography-portfolio.tsx` and styled in `src/app/globals.css`.
-- Current final section markup:
-  - `.photo-final-spread`
-  - `.photo-final-sheet`
-  - `.photo-final-minimal`
-  - four text spans: `ALL`, `SHOT ON`, `FUJIFILM`, `XH2`
-- Current motion goal:
-  - Keep the white page rising from below.
-  - Add some weight/drag, but avoid the overly slow/strange version.
-- Current tuned values:
-  - `.photo-final-spread` desktop height: `252svh`.
-  - Mobile final height: `224svh`.
-  - `.photo-final-sheet` initial transform: `translate3d(0, min(72svh, 760px), 0)`.
-  - JS sheet lift: `Math.min(window.innerHeight * 0.72, 760)`.
-  - Sheet ScrollTrigger scrub: `1.35`.
-  - Sheet scroll range: `start: "top bottom"`, `end: "top -62%"`.
-  - User explicitly asked not to revert this section back to the older handoff values.
+- Opening white page and central BIN loader.
+- BIN loader should not remain faintly visible once photo stack appears.
+- Intro stack should be concentrated in the center and visibly larger/solid, not tiny or washed out.
+- First 12 images should form the layered center stack.
+- After scatter, most intro photos should move out/offscreen.
+- Only 2 hold photos should remain before continuous track drift.
+- The 2 hold photos should directly continue into track motion, without a visible extra pull back to the track.
+- Current opening/hold photos should be IDs `3` and `8`.
+- No later track cards should appear extremely small.
+- Photos entering the viewport should appear directly rather than visibly fading in.
+- Wheel down accelerates forward.
+- Wheel up reverses temporarily.
+- Motion decays and resumes slow forward drift.
+- Footer chrome remains readable and unobtrusive.
 
-### Final Text Logic
+## Recommended Next Steps
 
-- Current behavior:
-  - Sheet rise remains scroll-driven.
-  - Final words are revealed from the final ScrollTrigger progress.
-  - Center X-H2 product image is independent of scroll reveal and appears only on `XH2` hover/pointer enter.
-  - If user scrolls back before the reveal range, text fades out again.
-- Relevant functions in `src/components/photography-portfolio.tsx`:
-  - `revealFinalWords`
-  - `hideFinalWords`
-- Current reveal threshold:
-  - Reveal when final ScrollTrigger progress is `>= 0.76`.
-  - Hide when final ScrollTrigger progress is `<= 0.48`.
+- If the user says `/more` images still feel too small, tune `widthVw`, `maxWidth`, and possibly route positions in `src/components/more-photo-field.tsx`.
+- If the user says `/more` feels too empty, do not immediately increase visible density. First adjust route positions, `trackSegment`, `trackSlotSpacing`, or viewport culling margin.
+- If the user wants original Brady Perron density again, ask whether they want more visible photos during track drift or only a denser intro stack.
+- If the user wants different opening photos, change `introLeadPhotoIds` in `src/components/more-photo-field.tsx`.
+- If the user gives real Xiaohongshu/Douyin links, replace placeholder social links in `src/app/about/page.tsx`.
+- If the user sees stale visuals, verify the foreground `npm run dev` process on port `3000` before making more design changes.
+- If restarting is needed, ask before killing any existing `3000` process.
 
-### Verification Done Today
+## Historical Notes
 
-- `npm.cmd run typecheck` passed.
-- `npm.cmd run lint` passed with the same 3 existing warnings:
-  - missing dependency warning for `closePhotoDetail`,
-  - two `@next/next/no-img-element` warnings.
-- Latest final-sheet source values were confirmed from `src/components/photography-portfolio.tsx` and `src/app/globals.css`:
-  - final spread: `252svh` desktop / `224svh` mobile,
-  - final sheet transform: `min(72svh, 760px)`,
-  - JS sheet lift: `Math.min(window.innerHeight * 0.72, 760)`,
-  - final trigger range: `end: "top -62%"`,
-  - scrub: `1.35`.
-
-### Notes For Next Agent
-
-- Do not reintroduce the previous reflection/photo echo under the final page. User disliked it.
-- Do not make the final page extremely slow again. The `360svh / 58svh / scrub 3.25` version felt strange and was rolled back.
-- If browser output does not match source edits, suspect stale `.next/` cache or stale dev server first.
-- If clearing cache is needed, only clear `F:\Desktop\web-black\.next` after stating the risk.
-- The final page should feel like a weighted white sheet entering the same dark gallery space, not like a separate gray section.
-
-## Project Context
-
-- Project: BIN personal photography portfolio site.
-- Local preview currently used by user: `http://localhost:3100/`.
-- Project documented preview command: `npm.cmd run dev:local` on `http://127.0.0.1:3100/`.
-- Main page: `src/app/page.tsx`.
-- Main component: `src/components/photography-portfolio.tsx`.
-- Main styles: `src/app/globals.css`.
-- Photo manifest: `src/data/portfolio-photos.json`.
-
-## Current Design Direction
-
-- Overall site remains a BIN-branded photography portfolio.
-- Intro/hero/gallery are dark, cinematic, photography-led.
-- Final page has been changed away from the earlier black bulge/particle effect.
-- Final page target is now a white, minimal, high-fashion layout inspired by the provided reference.
-
-## Recent Completed Work
-
-- Hero video was updated to the current selected source:
-  - `Photos/web7.mp4` was copied to `public/portfolio/videos/web7.mp4`.
-  - Current hero video source is `/portfolio/videos/web7.mp4` in `src/components/photography-portfolio.tsx`.
-  - Old public video files were deleted from `public/portfolio/videos/`:
-    - `web-hero.mp4`
-    - `web.mp4`
-    - `web2.mp4`
-    - `web3.mp4`
-    - `web4.mp4`
-    - `web5.mp4`
-    - `web6.mp4`
-  - `public/portfolio/videos/` currently contains only `web7.mp4`.
-- Final page was replaced with a minimal white page:
-  - Removed use of `BulgeTextEffect` from `src/components/photography-portfolio.tsx`.
-  - Final section now renders `.photo-final-minimal`.
-  - Text is split into four words/phrases:
-    - `ALL`
-    - `SHOT ON`
-    - `FUJIFILM`
-    - `XH2`
-  - These are positioned as four corners of a central square area.
-- Final page responsive behavior was adjusted:
-  - Uses a `vmin`-based central square so wide screens do not make text collide.
-  - Uses absolute corner positioning instead of grid placement.
-  - Mobile has smaller font/container sizing.
-- Final page X-H2 camera display was changed:
-  - Earlier Three.js / CSS-like camera body experiments were removed from `src/components/photography-portfolio.tsx`.
-  - The page now uses a real FUJIFILM X-H2 white-background product image.
-  - Source image is `public/portfolio/camera/xh2-front-cmos.webp`.
-  - The center camera image is hidden by default.
-  - Hovering the `XH2` word sets the preview visible via React pointer/mouse enter/leave handlers.
-  - The image uses `.photo-final-camera-product` and `.photo-final-camera-product-frame` styling in `src/app/globals.css`.
-  - Recent correction: do not crop off the X-H2 prism/EVF hump. Current CSS keeps the full product image visible with centered `width: 100%` instead of an over-cropped enlarged image.
-  - Centering correction: `.photo-final-artifact` uses `inset: 0; margin: auto;` so GSAP transforms cannot break geometric centering.
-
-## Verification Done
-
-- `npm.cmd run typecheck` passed.
-- `npm.cmd run lint` passed with 3 existing warnings in `src/components/photography-portfolio.tsx`.
-- Latest verification after switching to `web7.mp4`:
-  - `npm.cmd run typecheck` passed.
-  - `public/portfolio/videos/` was checked and contains only `web7.mp4`.
-  - Source search found the only public video reference as `/portfolio/videos/web7.mp4`.
-- Browser/layout verification for the final X-H2 preview:
-  - Product figure and four-word layout center were measured with `delta x = 0`, `delta y = 0` after the centering fix.
-  - Browser automation did not reliably trigger actual hover, but the code uses both mouse and pointer enter/leave handlers for the `XH2` word.
-- Final page responsive checks were run at:
-  - `971 x 1045`
-  - `1440 x 900`
-  - `390 x 844`
-- In those checks, the four final-page words stayed inside the central square and did not overlap.
-
-## Known Warnings
-
-`npm.cmd run lint` still reports 3 warnings that were already present:
-
-- Missing dependency warning for `closePhotoDetail`.
-- Two `@next/next/no-img-element` warnings for existing image usage.
-
-These were not introduced by the final-page/video changes.
-
-## Important Notes
-
-- `public/portfolio/videos/web7.mp4` is a large file, about 92 MB.
-- Old public video files were deleted intentionally per user request after copying in `web7.mp4`.
-- `Photos/` original source files were not deleted or modified.
-- `src/components/bulge-text-effect.tsx` still exists but is no longer imported by `photography-portfolio.tsx`.
-- The working tree already had unrelated modified files before some of this work. Do not revert unrelated changes unless the user explicitly asks.
-
-## Current Files Most Relevant To Recent Work
-
-- `src/components/photography-portfolio.tsx`
-- `src/app/globals.css`
-- `public/portfolio/videos/web7.mp4`
-- `public/portfolio/camera/xh2-front-cmos.webp`
-- `src/components/bulge-text-effect.tsx`
+- Older handoff entries mentioned preview port `3100`; that is now outdated for ordinary use.
+- Older handoff entries mentioned a different `/about` layout with large serif `BIN`, right-side social links, or a `back` button; that is outdated.
+- Earlier social text had mojibake in the handoff. Source display text should use proper Chinese if needed.
+- The biggest recurring causes of wasted time were:
+  - wrong preview port.
+  - background/hidden server launches.
+  - stale dev-server/browser state.
+  - LAN Next dev-resource blocking.
+  - non-ASCII public asset paths.

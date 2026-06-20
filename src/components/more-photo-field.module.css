@@ -1,0 +1,179 @@
+.scope,
+:global(.more-page) {
+  position: relative;
+}
+
+:global(.more-page) {
+  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
+  background: #f7f7f5;
+  color: #141414;
+  font-family: "Times New Roman", Times, serif;
+  isolation: isolate;
+  overscroll-behavior: none;
+}
+
+:global(.more-page)::before {
+  display: none;
+}
+
+:global(.more-page__header) {
+  display: none;
+}
+
+:global(.more-page__chrome) {
+  position: fixed;
+  right: clamp(12px, 1.2vw, 22px);
+  bottom: clamp(12px, 1.3vw, 24px);
+  left: clamp(12px, 1.2vw, 22px);
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  color: rgb(24 24 24 / 0.34);
+  font-size: clamp(1.12rem, 1.45vw, 1.72rem);
+  line-height: 0.8;
+  pointer-events: none;
+}
+
+:global(.more-page__chrome)::before {
+  position: absolute;
+  right: 0;
+  bottom: 0.04em;
+  left: 10.5rem;
+  height: 16px;
+  background: rgb(236 236 233 / 0.82);
+  content: "";
+  transform: translateY(34%);
+}
+
+:global(.more-page__brand),
+:global(.more-page__nav a) {
+  position: relative;
+  z-index: 1;
+  color: inherit;
+  text-decoration: none;
+  pointer-events: auto;
+  transition: color 180ms ease;
+}
+
+:global(.more-page__brand) {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+:global(.more-page__nav) {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  font-size: clamp(0.78rem, 0.85vw, 0.92rem);
+  line-height: 1;
+}
+
+:global(.more-page__nav span) {
+  color: rgb(24 24 24 / 0.22);
+}
+
+:global(.more-page__brand:hover),
+:global(.more-page__nav a:hover) {
+  color: rgb(24 24 24 / 0.72);
+}
+
+.scope {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: default;
+}
+
+:global(.more-photo-loader) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 35;
+  display: grid;
+  gap: 13px;
+  place-items: center;
+  color: rgb(24 24 24 / 0.14);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+:global(.more-photo-loader__mark) {
+  display: block;
+  font-size: clamp(1.9rem, 2.3vw, 3rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+:global(.more-photo-loader__line) {
+  display: block;
+  width: clamp(140px, 10.8vw, 210px);
+  height: 3px;
+  background: rgb(24 24 24 / 0.18);
+}
+
+:global(.more-photo-stage) {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+:global(.more-photo-card) {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(var(--more-card-width), var(--more-card-max), 82vw, calc(76svh * var(--more-card-ratio-value)));
+  aspect-ratio: var(--more-card-ratio);
+  margin: 0;
+  overflow: hidden;
+  background: rgb(230 230 226 / 0.62);
+  box-shadow: none;
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+
+:global(.more-photo-card img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+:global(.more-photo-card.is-portrait) {
+  width: min(var(--more-card-width), var(--more-card-max), 64vw, calc(72svh * var(--more-card-ratio-value)));
+}
+
+@media (max-width: 760px) {
+  :global(.more-page__chrome) {
+    font-size: 1.24rem;
+  }
+
+  :global(.more-page__chrome)::before {
+    left: 5.8rem;
+    height: 12px;
+  }
+
+  :global(.more-photo-card) {
+    width: min(calc(var(--more-card-width) * 1.75), var(--more-card-max), 88vw, calc(72svh * var(--more-card-ratio-value)));
+  }
+
+  :global(.more-photo-card.is-portrait) {
+    width: min(calc(var(--more-card-width) * 1.55), var(--more-card-max), 72vw, calc(68svh * var(--more-card-ratio-value)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scope {
+    touch-action: auto;
+  }
+}

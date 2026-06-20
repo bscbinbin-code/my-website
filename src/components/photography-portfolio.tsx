@@ -3,6 +3,7 @@
 import type { CSSProperties, MouseEvent } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import photos from "@/data/portfolio-photos.json";
 import { TubeTextScroll } from "@/components/tube-text-scroll";
@@ -304,11 +305,13 @@ function PhotoLocationMap({ photo }: { photo: GalleryItem }) {
 }
 
 export function PhotographyPortfolio() {
+  const router = useRouter();
   const [aboutReady, setAboutReady] = useState(false);
   const [aboutOnDark, setAboutOnDark] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [selectedSocialQrId, setSelectedSocialQrId] = useState<SocialQrCard["id"] | null>(null);
   const [finalAboutVisible, setFinalAboutVisible] = useState(false);
+  const [isAboutTransitioning, setIsAboutTransitioning] = useState(false);
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [isXh2PreviewVisible, setIsXh2PreviewVisible] = useState(false);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
@@ -329,6 +332,7 @@ export function PhotographyPortfolio() {
   const detailClosingRef = useRef(false);
   const detailOpenTimelineRef = useRef<{ kill: () => void } | null>(null);
   const detailGlowTweenRef = useRef<{ kill: () => void } | null>(null);
+  const aboutTransitionTimeoutRef = useRef<number | null>(null);
   const scrollLockRef = useRef<{
     bodyTouchAction: string;
     documentOverscrollBehavior: string;
@@ -377,6 +381,35 @@ export function PhotographyPortfolio() {
     () => socialQrCards.find((card) => card.id === selectedSocialQrId) ?? null,
     [selectedSocialQrId],
   );
+
+  const openAboutPage = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (isAboutTransitioning) return;
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      router.push("/about");
+      return;
+    }
+
+    setIsAboutTransitioning(true);
+    aboutTransitionTimeoutRef.current = window.setTimeout(() => {
+      router.push("/about");
+    }, 540);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (aboutTransitionTimeoutRef.current !== null) {
+        window.clearTimeout(aboutTransitionTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const createDetailTransitionClone = (photo: GalleryItem, rect: DOMRect) => {
     const clone = document.createElement("div");
@@ -1505,9 +1538,21 @@ export function PhotographyPortfolio() {
       </div>
 
       <div className="about-float-anchor">
-        <Link className={`about-float${finalAboutVisible ? " is-visible" : ""}`} href="/about" aria-label="Open about page">
+        <Link className={`about-float${finalAboutVisible ? " is-visible" : ""}`} href="/more" aria-label="Open more photos page">
+          <span>more</span>
+        </Link>
+        <Link
+          className={`about-float${finalAboutVisible ? " is-visible" : ""}`}
+          href="/about"
+          aria-label="Open about page"
+          onClick={openAboutPage}
+        >
           <span>about</span>
         </Link>
+      </div>
+
+      <div className={`about-page-transition${isAboutTransitioning ? " is-active" : ""}`} aria-hidden="true">
+        <span className="about-page-transition__leaf" />
       </div>
 
       {selectedSocialQr ? (
