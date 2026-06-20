@@ -12,10 +12,16 @@ This document is the current project handoff for `F:\Desktop\web-black`. It reco
 - After restart, `http://localhost:3000/` returned `STATUS=200`.
 - If the in-app browser still shows an old error page, first re-enter `http://localhost:3000/` in the address bar or open a fresh tab. Do not immediately assume app code is broken.
 - Current `/more` work before this handoff:
-  - The faint BIN loader behind the opening photo stack was fixed by hiding the loader earlier and setting `display: none`.
-  - The two photos left after the opening explosion no longer do an extra "pulled back to track" tween. Their explosion end position is now the same as the track start position.
-  - The leading/opening hold photos were changed to photo IDs `3` and `8` from `src/data/more-photos.json`.
-  - Typecheck, lint, and build passed after the change.
+  - Bottom chrome no longer has the gray horizontal strip.
+  - Right footer nav now only shows a larger `close` link; `list` was removed.
+  - Clicking a visible photo opens a plain enlarged preview with no extra UI or overlay styling.
+  - During the enlarge animation, the rest of the track continues moving; after enlarge completes, track motion pauses.
+  - Clicking outside the enlarged photo closes it; the track resumes immediately and the preview animates back to the photo's current moving track position.
+  - Original clicked card is hidden while the clone preview enlarges, so duplicate source/preview overlap is avoided.
+  - Offscreen/hidden track cards now keep their `x/y` updated every tick to avoid one-frame flashes when entering the viewport.
+  - Reverse wheel movement has a lower progress limit so users cannot keep scrolling into deep blank white space; after wheel stops, the normal forward drift resumes.
+  - Smoke photo ID `24` (`/portfolio/more/more-24.webp`) was made smaller with a special size override.
+  - Multi-size Playwright QA passed for `1728x992`, `1440x900`, `1024x768`, and `390x844`: `/more` returned `200`, no console/page errors, gray strip was absent, and click-open/click-outside-close preview worked.
 
 ## Project Overview
 
@@ -226,7 +232,8 @@ Current `/more` page structure:
 - `src/app/more/page.tsx` renders `<MorePhotoField />`.
 - Fixed footer chrome:
   - left brand link `BIN` back to `/`.
-  - right nav shows `list` text and `close` link back to `/`.
+  - right nav shows only a slightly larger `close` link back to `/`.
+  - the old gray horizontal footer strip is disabled.
 - Hidden legacy header remains for accessibility/structure but is styled away.
 
 Current `/more` animation implementation:
@@ -263,11 +270,13 @@ Current `/more` animation implementation:
 - `initialTrackProgress = trackSlotSpacing * (introHoldSize - 0.5)`.
 - Photos are not currently grouped into hard visible groups. All photos are laid onto route progress, and off-viewport cards are hidden by viewport culling.
 - `isTrackCardNearViewport()` uses measured card dimensions and a margin so cards do not disappear too early at screen edges.
+- Hidden/off-viewport cards still receive current `x/y` transforms each render tick, with only `autoAlpha` changing. This avoids visible flashes from stale card positions.
 - A prior bug where cards looked extremely small was fixed by setting rendered track cards to `scale: 1`.
 - Current image sizes were enlarged after the user said overall screen occupancy should be bigger:
   - hero width: `45vw`, max `980px`.
   - portrait width: about `25vw` to `29.05vw`, max `620px`.
   - landscape width: about `34vw` to `40.6vw`, max `880px`.
+  - smoke photo ID `24`: `27vw`, max `560px`.
   - image `sizes`: `(max-width: 760px) 82vw, 48vw`.
 - Rotation is currently kept at `0` because the user said photos should be straight, not tilted.
 - Current movement routes:
@@ -283,6 +292,14 @@ Current `/more` animation implementation:
   - `state.velocity += event.deltaY * 0.018`.
   - clamped to `-24` to `32`.
   - decays by `Math.pow(0.91, delta)`.
+  - upward/reverse wheel movement is limited by `reverseProgressLimit = trackSlotSpacing * 0.12`; hitting this limit stops extra reverse velocity and resumes forward drift after the short hold.
+- Click-to-enlarge preview:
+  - implemented in `src/components/more-photo-field.tsx` with a temporary `.more-photo-preview-layer` and cloned `<img>`.
+  - the original clicked card is hidden immediately via `hiddenPreviewIndex`.
+  - during enlarge, track motion continues; `state.isPreviewOpen` is set only after the enlarge tween completes.
+  - while preview is open, ticker track motion pauses and wheel input is ignored.
+  - closing starts track motion immediately and animates the preview clone back toward the card's live moving track position.
+  - clicking the preview image itself does nothing; clicking outside it closes.
 - `prefers-reduced-motion`:
   - loader hidden and set to `display: none`.
   - cards are placed directly on their track positions.
@@ -352,31 +369,43 @@ Video / brand assets:
 
 ## Current Modified / New Files To Be Aware Of
 
-Git status has included these modified tracked files:
+After the latest GitHub push before this handoff, the current active changes are expected to be:
 
-- `AGENTS.md`
 - `hand off.md`
-- `next.config.ts`
-- `src/app/about/page.tsx`
-- `src/app/globals.css`
-- `src/components/photography-portfolio.tsx`
-- `src/data/portfolio-photos.json`
+- `src/app/more/page.tsx`
+- `src/components/more-photo-field.module.css`
+- `src/components/more-photo-field.tsx`
 
-Git status has also included these untracked/new paths:
+Older `/more` assets and route files are already tracked in Git:
 
 - `public/portfolio/more/`
 - `scripts/generate-more-photos.mjs`
-- `src/app/more/`
+- `src/app/more/page.tsx`
 - `src/components/more-photo-field.module.css`
 - `src/components/more-photo-field.tsx`
 - `src/data/more-photos.json`
 
-Treat the working tree as dirty. Do not revert unrelated changes.
+Treat the working tree as potentially dirty. Do not revert unrelated changes.
 
 ## Verification History
 
 Recent checks during latest `/more` work:
 
+- `npm.cmd run typecheck` passed after the preview interaction and footer updates.
+- `npm.cmd run lint` passed with the same 3 existing warnings in `src/components/photography-portfolio.tsx`.
+- Escalated Playwright visual QA passed for:
+  - `1728 x 992`
+  - `1440 x 900`
+  - `1024 x 768`
+  - `390 x 844`
+- QA checks confirmed:
+  - `/more` returned `200`.
+  - no page errors or console errors were observed.
+  - 50 photo cards were present.
+  - the bottom gray chrome strip was gone (`::before` display `none`).
+  - the `close` link was visible at all tested sizes.
+  - click-to-enlarge and click-outside-close worked at all tested sizes.
+  - screenshots were written to `temp/qa-more-*.png`.
 - `npm.cmd run typecheck` passed.
 - `npm.cmd run lint` passed with 3 existing warnings:
   - missing dependency warning for `closePhotoDetail` in `src/components/photography-portfolio.tsx`.
@@ -440,10 +469,20 @@ For `/more`, specifically inspect:
 - Current opening/hold photos should be IDs `3` and `8`.
 - No later track cards should appear extremely small.
 - Photos entering the viewport should appear directly rather than visibly fading in.
+- Photos should not one-frame flash from stale positions when entering the viewport.
+- Click a visible photo:
+  - original card should disappear immediately.
+  - cloned preview should enlarge smoothly with no extra UI.
+  - other track photos should continue moving while the enlarge tween runs.
+  - track should pause after the enlarge finishes.
+- Click outside the enlarged photo:
+  - track should resume immediately.
+  - preview should animate back toward the moving track position and hand off cleanly.
 - Wheel down accelerates forward.
 - Wheel up reverses temporarily.
+- Wheel up should stop at the reverse blank-space limit, then forward drift should resume after the short hold.
 - Motion decays and resumes slow forward drift.
-- Footer chrome remains readable and unobtrusive.
+- Footer chrome should show only `BIN` and a readable `close`; no `list` text and no gray horizontal strip.
 
 ## Recommended Next Steps
 

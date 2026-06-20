@@ -38,14 +38,8 @@
 }
 
 :global(.more-page__chrome)::before {
-  position: absolute;
-  right: 0;
-  bottom: 0.04em;
-  left: 10.5rem;
-  height: 16px;
-  background: rgb(236 236 233 / 0.82);
-  content: "";
-  transform: translateY(34%);
+  display: none;
+  content: none;
 }
 
 :global(.more-page__brand),
@@ -67,9 +61,8 @@
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 12px;
   align-items: flex-end;
-  font-size: clamp(0.78rem, 0.85vw, 0.92rem);
+  font-size: clamp(0.98rem, 1vw, 1.16rem);
   line-height: 1;
 }
 
@@ -138,9 +131,39 @@
   opacity: 0;
   visibility: hidden;
   will-change: transform, opacity;
+  cursor: zoom-in;
 }
 
 :global(.more-photo-card img) {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+:global(.more-photo-preview-layer) {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: transparent;
+  cursor: zoom-out;
+}
+
+:global(.more-photo-preview) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  margin: 0;
+  overflow: hidden;
+  background: rgb(230 230 226 / 0.62);
+  cursor: default;
+  will-change: transform, width, height;
+}
+
+:global(.more-photo-preview img) {
   display: block;
   width: 100%;
   height: 100%;

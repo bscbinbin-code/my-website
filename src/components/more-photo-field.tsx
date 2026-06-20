@@ -41,6 +41,7 @@ const trackFadeDistance = 72;
 const initialTrackProgress = trackSlotSpacing * (introHoldSize - 0.5);
 const reverseProgressLimit = trackSlotSpacing * 0.12;
 const reverseHoldMs = 260;
+const previewMargin = 80;
 const introLeadPhotoIds = [3, 8];
 
 const orderedMorePhotos = [
@@ -60,8 +61,9 @@ function getTrackPhotos(): TrackPhoto[] {
     const route = index % routeCount;
     const isHero = index === 0 || index === 1 || index % 17 === 0;
     const isPortrait = photo.orientation === "portrait";
-    const widthVw = isHero ? 45 : isPortrait ? 25 + (index % 4) * 1.35 : 34 + (index % 5) * 1.65;
-    const maxWidth = isHero ? 980 : isPortrait ? 620 : 880;
+    const isSmallSmokePhoto = photo.id === 24;
+    const widthVw = isSmallSmokePhoto ? 27 : isHero ? 45 : isPortrait ? 25 + (index % 4) * 1.35 : 34 + (index % 5) * 1.65;
+    const maxWidth = isSmallSmokePhoto ? 560 : isHero ? 980 : isPortrait ? 620 : 880;
 
     return {
       ...photo,
@@ -96,10 +98,15 @@ export function MorePhotoField() {
       progress: initialTrackProgress,
       velocity: 0,
       reverseHoldUntil: 0,
+      isPreviewOpen: false,
+      hiddenPreviewIndex: -1,
       width: window.innerWidth,
       height: window.innerHeight,
     };
     const loopLength = Math.max(trackSegment + trackSlotSpacing, trackPhotos.length * trackSlotSpacing);
+    let previewLayer: HTMLDivElement | null = null;
+    let previewFigure: HTMLElement | null = null;
+    let activePreviewIndex = -1;
 
     const measureCards = () => {
       cardMetrics = cards.map((card) => ({
@@ -261,14 +268,10 @@ export function MorePhotoField() {
 
         const localProgress = getPhotoLocalProgress(index, state.progress);
         const position = getTrackPosition(item, localProgress, state.progress);
-
-        if (!isTrackCardNearViewport(index, position)) {
-          gsap.set(card, { autoAlpha: 0 });
-          return;
-        }
+        const isVisible = isTrackCardNearViewport(index, position);
 
         gsap.set(card, {
-          autoAlpha: 1,
+          autoAlpha: isVisible && state.hiddenPreviewIndex !== index ? 1 : 0,
           scale: 1,
           x: position.x,
           y: position.y,
@@ -278,7 +281,7 @@ export function MorePhotoField() {
     };
 
     const tick = () => {
-      if (!state.isTracking) return;
+      if (!state.isTracking || state.isPreviewOpen) return;
       const delta = gsap.ticker.deltaRatio(60);
       const isHoldingReverseLimit = state.progress <= reverseProgressLimit && performance.now() < state.reverseHoldUntil;
       if (isHoldingReverseLimit) {
@@ -301,6 +304,7 @@ export function MorePhotoField() {
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+      if (state.isPreviewOpen) return;
       if (event.deltaY < 0 && state.progress <= reverseProgressLimit) {
         state.progress = reverseProgressLimit;
         state.velocity = 0;
@@ -310,6 +314,138 @@ export function MorePhotoField() {
 
       const nextVelocity = state.velocity + event.deltaY * 0.018;
       state.velocity = gsap.utils.clamp(-24, 32, nextVelocity);
+    };
+
+    const getPreviewTargetRect = (rect: DOMRect) => {
+      const availableWidth = Math.max(220, state.width - previewMargin * 2);
+      const availableHeight = Math.max(220, state.height - previewMargin * 2);
+      const scale = Math.min(availableWidth / rect.width, availableHeight / rect.height, 1.82);
+      const width = rect.width * scale;
+      const height = rect.height * scale;
+
+      return {
+        x: (state.width - width) / 2,
+        y: (state.height - height) / 2,
+        width,
+        height,
+      };
+    };
+
+    const removePreviewLayer = () => {
+      previewLayer?.remove();
+      previewLayer = null;
+      previewFigure = null;
+      activePreviewIndex = -1;
+    };
+
+    const closePreview = () => {
+      if (!previewFigure || activePreviewIndex < 0) return;
+
+      const index = activePreviewIndex;
+      const card = cards[index];
+      const item = trackPhotos[index];
+      if (!card || !item) {
+        removePreviewLayer();
+        state.isPreviewOpen = false;
+        state.hiddenPreviewIndex = -1;
+        return;
+      }
+
+      state.isPreviewOpen = false;
+      state.velocity = 0;
+      renderTrack();
+
+      const startRect = previewFigure.getBoundingClientRect();
+      const tweenState = { progress: 0 };
+
+      gsap.killTweensOf(previewFigure);
+      gsap.to(tweenState, {
+        progress: 1,
+        duration: 0.62,
+        ease: "power3.inOut",
+        onUpdate: () => {
+          if (!previewFigure) return;
+          const localProgress = getPhotoLocalProgress(index, state.progress);
+          const position = getTrackPosition(item, localProgress, state.progress);
+          const targetWidth = card.offsetWidth;
+          const targetHeight = card.offsetHeight;
+          const targetX = state.width / 2 + position.x - targetWidth / 2;
+          const targetY = state.height / 2 + position.y - targetHeight / 2;
+          const progress = tweenState.progress;
+
+          gsap.set(previewFigure, {
+            x: gsap.utils.interpolate(startRect.left, targetX, progress),
+            y: gsap.utils.interpolate(startRect.top, targetY, progress),
+            width: gsap.utils.interpolate(startRect.width, targetWidth, progress),
+            height: gsap.utils.interpolate(startRect.height, targetHeight, progress),
+          });
+        },
+        onComplete: () => {
+          state.hiddenPreviewIndex = -1;
+          renderTrack();
+          removePreviewLayer();
+        },
+      });
+    };
+
+    const openPreview = (index: number) => {
+      if (state.isPreviewOpen || !state.isTracking) return;
+      const card = cards[index];
+      const item = trackPhotos[index];
+      const image = card?.querySelector<HTMLImageElement>("img");
+      if (!card || !item || !image || gsap.getProperty(card, "autoAlpha") === 0) return;
+
+      const sourceRect = card.getBoundingClientRect();
+      const targetRect = getPreviewTargetRect(sourceRect);
+      removePreviewLayer();
+      state.velocity = 0;
+      state.hiddenPreviewIndex = index;
+      activePreviewIndex = index;
+
+      previewLayer = document.createElement("div");
+      previewLayer.className = "more-photo-preview-layer";
+      previewFigure = document.createElement("figure");
+      previewFigure.className = "more-photo-preview";
+      const previewImage = document.createElement("img");
+      previewImage.src = item.src;
+      previewImage.alt = "";
+      previewFigure.append(previewImage);
+      previewLayer.append(previewFigure);
+      root.append(previewLayer);
+
+      previewLayer.addEventListener("click", closePreview);
+      previewFigure.addEventListener("click", (event) => {
+        event.stopPropagation();
+      });
+
+      gsap.set(previewFigure, {
+        x: sourceRect.left,
+        y: sourceRect.top,
+        width: sourceRect.width,
+        height: sourceRect.height,
+      });
+      renderTrack();
+      gsap.to(previewFigure, {
+        x: targetRect.x,
+        y: targetRect.y,
+        width: targetRect.width,
+        height: targetRect.height,
+        duration: 0.78,
+        ease: "power3.inOut",
+        onComplete: () => {
+          if (activePreviewIndex !== index) return;
+          state.isPreviewOpen = true;
+          state.velocity = 0;
+          renderTrack();
+        },
+      });
+    };
+
+    const onCardClick = (event: Event) => {
+      const card = (event.currentTarget as HTMLElement | null);
+      if (!card) return;
+      const index = cards.indexOf(card);
+      if (index >= 0) openPreview(index);
     };
 
     const ctx = gsap.context(() => {
@@ -456,11 +592,18 @@ export function MorePhotoField() {
     gsap.ticker.add(tick);
     window.addEventListener("resize", setDimensions);
     root.addEventListener("wheel", onWheel, { passive: false });
+    cards.forEach((card) => {
+      card.addEventListener("click", onCardClick);
+    });
 
     return () => {
+      cards.forEach((card) => {
+        card.removeEventListener("click", onCardClick);
+      });
       root.removeEventListener("wheel", onWheel);
       window.removeEventListener("resize", setDimensions);
       gsap.ticker.remove(tick);
+      removePreviewLayer();
       ctx.revert();
     };
   }, [trackPhotos]);

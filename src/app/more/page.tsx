@@ -11,7 +11,6 @@ export default function MorePage() {
           BIN
         </Link>
         <nav className="more-page__nav" aria-label="More page links">
-          <span>list</span>
           <Link href="/" aria-label="Close more page">
             close
           </Link>
