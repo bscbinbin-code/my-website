@@ -1991,7 +1991,13 @@ export function PhotographyPortfolio() {
                 data-tilt={photo.layout.tilt}
               >
                 <div className="photo-card-media">
-                  <img src={photo.src} alt={photo.title} loading={index < 3 ? "eager" : "lazy"} decoding="async" />
+                  <img
+                    src={photo.src}
+                    alt={photo.title}
+                    loading={index < 8 ? "eager" : "lazy"}
+                    fetchPriority={index < 8 ? "high" : "auto"}
+                    decoding="async"
+                  />
                   <span className="photo-card-scan" aria-hidden="true" />
                 </div>
                 <figcaption>

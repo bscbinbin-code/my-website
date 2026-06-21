@@ -53,6 +53,7 @@ temp/
 Photos/
 !/public/portfolio/photos/
 public/portfolio/photos/*
+!/public/portfolio/photos/*-photo.jpg
 !/public/portfolio/photos/fujifilm-final.png
 skills/
 skill-install-extract/
