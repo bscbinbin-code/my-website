@@ -70,6 +70,47 @@ const socialQrCards: SocialQrCard[] = [
   },
 ];
 const finalCreditWords = ["ALL", "SHOT ON", "FUJIFILM", "XH2"] as const;
+const mobileIntroPreloadCount = 12;
+
+function waitForImage(src: string, timeoutMs: number) {
+  return new Promise<void>((resolve) => {
+    const image = new Image();
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timeout);
+      resolve();
+    };
+    const timeout = window.setTimeout(finish, timeoutMs);
+
+    image.onload = finish;
+    image.onerror = finish;
+    image.decoding = "async";
+    image.src = src;
+  });
+}
+
+function waitForWindowLoad(timeoutMs: number) {
+  return new Promise<void>((resolve) => {
+    if (document.readyState === "complete") {
+      resolve();
+      return;
+    }
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      window.clearTimeout(timeout);
+      window.removeEventListener("load", finish);
+      resolve();
+    };
+    const timeout = window.setTimeout(finish, timeoutMs);
+
+    window.addEventListener("load", finish, { once: true });
+  });
+}
 
 function markHomeIntroSkipOnce() {
   if (typeof window === "undefined") return;
@@ -355,6 +396,7 @@ export function PhotographyPortfolio() {
   const introOutlineRef = useRef<SVGTextElement>(null);
   const introMaskRef = useRef<SVGRectElement>(null);
   const introMaskTextRef = useRef<SVGTextElement>(null);
+  const introLoaderRef = useRef<HTMLSpanElement>(null);
   const siteContentRef = useRef<HTMLDivElement>(null);
   const locationsRef = useRef<HTMLDivElement>(null);
   const aboutTopAnchorRef = useRef<HTMLDivElement>(null);
@@ -1053,6 +1095,7 @@ export function PhotographyPortfolio() {
     const introOutline = introOutlineRef.current;
     const introMask = introMaskRef.current;
     const introMaskText = introMaskTextRef.current;
+    const introLoader = introLoaderRef.current;
     const siteContent = siteContentRef.current;
     const shouldSkipIntro = skipIntroRef.current || consumeHomeIntroSkipOnce();
     if (!intro || !introWord || !introOutline || !introMask || !introMaskText || !siteContent) {
@@ -1108,6 +1151,20 @@ export function PhotographyPortfolio() {
         void video.play().catch(() => undefined);
       });
 
+    const waitForIntroReady = async () => {
+      const isMobile = window.matchMedia("(max-width: 900px)").matches;
+      await waitForHeroVideo();
+      if (!isMobile) return;
+
+      await Promise.race([
+        Promise.all([
+          waitForWindowLoad(3600),
+          ...galleryPhotos.slice(0, mobileIntroPreloadCount).map((photo) => waitForImage(photo.src, 3600)),
+        ]),
+        new Promise<void>((resolve) => window.setTimeout(resolve, 4200)),
+      ]);
+    };
+
     const init = async () => {
       const { gsap } = await import("gsap");
       await document.fonts.ready;
@@ -1148,20 +1205,33 @@ export function PhotographyPortfolio() {
           autoAlpha: 0,
           filter: "none",
         });
+        if (introLoader) {
+          gsap.set(introLoader, {
+            autoAlpha: 0,
+            scaleX: 0,
+            transformOrigin: "0% 50%",
+          });
+        }
 
         const tl = gsap.timeline({
           defaults: { ease: "power3.out" },
           onComplete: finishIntro,
         });
-        const fallbackExit = window.setTimeout(finishIntro, 6500);
+        const fallbackExit = window.setTimeout(finishIntro, 9000);
 
         tl.to(introWord, {
           autoAlpha: 1,
           duration: 0.42,
         })
-          .to(introWord, {
-            duration: 0.22,
+          .to(introWord, { duration: 0.22 })
+          .to(introLoader, { autoAlpha: 0.72, duration: 0.18, ease: "power1.out" }, "<")
+          .to(introLoader, { scaleX: 0.9, duration: 2.8, ease: "power1.inOut" }, "<")
+          .addPause(">", () => {
+            void waitForIntroReady().then(() => {
+              if (!cancelled) tl.play();
+            });
           })
+          .to(introLoader, { scaleX: 1, autoAlpha: 0, duration: 0.18, ease: "power2.out" })
           .to(
             introWord,
             {
@@ -1189,14 +1259,7 @@ export function PhotographyPortfolio() {
             },
             "<",
           )
-          .to({}, {
-            duration: 0.16,
-          })
-          .addPause(">", () => {
-            void waitForHeroVideo().then(() => {
-              if (!cancelled) tl.play();
-            });
-          })
+          .to({}, { duration: 0.16 })
           .to(
             introOutline,
             {
@@ -1808,6 +1871,7 @@ export function PhotographyPortfolio() {
             BIN
           </text>
         </svg>
+        <span className="photo-intro-loader" ref={introLoaderRef} />
       </div>
 
       <div className="about-top-anchor" ref={aboutTopAnchorRef}>
