@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { HistoryBackLink } from "@/components/history-back-link";
 import { MorePhotoField } from "@/components/more-photo-field";
 
 export default function MorePage() {
@@ -7,21 +7,21 @@ export default function MorePage() {
       <MorePhotoField />
 
       <footer className="more-page__chrome" aria-label="More page navigation">
-        <Link className="more-page__brand" href="/" aria-label="Back to BIN home">
+        <HistoryBackLink className="more-page__brand" aria-label="Back to BIN home" transitionVariant="more-exit">
           BIN
-        </Link>
+        </HistoryBackLink>
         <nav className="more-page__nav" aria-label="More page links">
-          <Link href="/" aria-label="Close more page">
+          <HistoryBackLink aria-label="Close more page" transitionVariant="more-exit">
             close
-          </Link>
+          </HistoryBackLink>
         </nav>
       </footer>
 
       <header className="more-page__header" aria-hidden="true">
         <p>more</p>
-        <Link tabIndex={-1} href="/">
+        <HistoryBackLink tabIndex={-1} transitionVariant="more-exit">
           close
-        </Link>
+        </HistoryBackLink>
       </header>
     </main>
   );

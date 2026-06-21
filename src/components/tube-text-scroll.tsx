@@ -11,7 +11,7 @@ const cityNames = [
 const clearTextFilter = "blur(0px) contrast(1)";
 const meltTextFilter = "url(#photo-tube-melt) blur(30px) contrast(1.85)";
 const clearGlowFilter = "blur(18px) contrast(1.25) saturate(1.35)";
-const meltGlowFilter = "url(#photo-tube-melt) blur(48px) contrast(1.9) saturate(1.5)";
+const meltGlowFilter = "url(#photo-tube-melt) blur(30px) contrast(1.55) saturate(1.42)";
 const clearShadow =
   "0 0 1px rgb(8 9 10 / 0.36), 0 0 22px rgb(118 16 36 / 0.78), 0 0 56px rgb(242 48 84 / 0.56)";
 const meltShadow =
@@ -225,7 +225,7 @@ export function TubeTextScroll() {
               {
                 filter: (index) => (index % 2 === 0 ? meltTextFilter : meltGlowFilter),
                 opacity: (index) => (index % 2 === 0 ? 0.08 : 0.64),
-                scale: (index) => (index % 2 === 0 ? 1.14 : 1.42),
+                scale: (index) => (index % 2 === 0 ? 1.14 : 1.2),
                 textShadow: meltShadow,
                 duration: 0.7,
                 ease: "power2.inOut",
@@ -283,8 +283,8 @@ export function TubeTextScroll() {
                 opacity: 1,
                 scale: 1,
                 textShadow: clearShadow,
-                duration: 0.24,
-                ease: "sine.out",
+                duration: 0.48,
+                ease: "power2.out",
               },
               ">-=0.18",
             );

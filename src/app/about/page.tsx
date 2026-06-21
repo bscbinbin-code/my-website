@@ -1,15 +1,16 @@
 import Image from "next/image";
-import Link from "next/link";
+import { HistoryBackLink } from "@/components/history-back-link";
 
 export default function AboutPage() {
   return (
     <main className="about-page" aria-label="About BIN">
       <header className="about-page__header">
         <p>about - bin</p>
-        <Link href="/" aria-label="Close about page">
-          close
-        </Link>
       </header>
+
+      <HistoryBackLink className="about-page__close" aria-label="Close about page">
+        close
+      </HistoryBackLink>
 
       <section className="about-page__contact" aria-label="Social links" style={{ top: "var(--about-contact-top, clamp(300px, 32svh, 350px))" }}>
         <p>( contact )</p>
@@ -17,11 +18,11 @@ export default function AboutPage() {
           className="about-page__social"
           style={{ fontFamily: '"PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif' }}
         >
-          <a href="#" aria-label="Open Rednote profile">
+          <a href="https://www.xiaohongshu.com/user/profile/60cb1a4b000000000100866f" target="_blank" rel="noopener noreferrer" aria-label="Open Rednote profile">
             <span>小红书</span>
             <i aria-hidden="true">↗</i>
           </a>
-          <a href="#" aria-label="Open Douyin profile">
+          <a href="https://v.douyin.com/IXgcwn0MuVU/%208@1.com%20:3pm" target="_blank" rel="noopener noreferrer" aria-label="Open Douyin profile">
             <span>抖音</span>
             <i aria-hidden="true">↗</i>
           </a>
@@ -33,11 +34,23 @@ export default function AboutPage() {
         aria-label="BIN avatar"
         style={{
           top: "auto",
+          right: "var(--about-avatar-right, clamp(58px, 5.2vw, 112px))",
           bottom: "var(--about-avatar-bottom, clamp(32px, 4.2svh, 72px))",
-          width: "var(--about-avatar-width, clamp(330px, min(26vw, 48svh), 430px))",
+          width: "var(--about-avatar-frame-width, clamp(430px, min(31vw, 54svh), 560px))",
         }}
       >
-        <Image src="/portfolio/about/binbin-yaya-duck.jpg" alt="" width={2481} height={2350} priority sizes="(max-width: 920px) 78vw, 32vw" />
+        <Image
+          src="/portfolio/about/binbin-yaya-duck.jpg"
+          alt=""
+          width={2481}
+          height={2350}
+          priority
+          sizes="(max-width: 920px) 78vw, 32vw"
+          style={{
+            width: "min(100%, var(--about-avatar-image-width, clamp(310px, 74cqw, 430px)))",
+            height: "auto",
+          }}
+        />
         <figcaption
           className="about-page__brand"
           aria-label="BIN"

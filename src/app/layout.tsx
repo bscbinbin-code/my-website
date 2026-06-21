@@ -19,6 +19,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="h-full antialiased">
+      <head>
+        <link rel="dns-prefetch" href="https://www.openstreetmap.org" />
+        <link rel="preconnect" href="https://www.openstreetmap.org" />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

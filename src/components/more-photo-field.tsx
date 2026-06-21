@@ -43,6 +43,8 @@ const reverseProgressLimit = trackSlotSpacing * 0.12;
 const reverseHoldMs = 260;
 const previewMargin = 80;
 const introLeadPhotoIds = [3, 8];
+const moreEntryTransitionKey = "bin-more-entry-transition";
+const moreEntryTransitionDelay = 0.58;
 
 const orderedMorePhotos = [
   ...introLeadPhotoIds
@@ -54,6 +56,15 @@ const orderedMorePhotos = [
 function wrapValue(value: number, min: number, max: number) {
   const range = max - min;
   return ((((value - min) % range) + range) % range) + min;
+}
+
+function consumeMoreEntryTransitionDelay() {
+  if (typeof window === "undefined") return 0;
+
+  const shouldDelay = window.sessionStorage.getItem(moreEntryTransitionKey) === "1";
+  if (shouldDelay) window.sessionStorage.removeItem(moreEntryTransitionKey);
+
+  return shouldDelay ? moreEntryTransitionDelay : 0;
 }
 
 function getTrackPhotos(): TrackPhoto[] {
@@ -83,12 +94,14 @@ function getTrackPhotos(): TrackPhoto[] {
 export function MorePhotoField() {
   const rootRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const entryDelayRef = useRef<number | null>(null);
   const trackPhotos = useMemo(() => getTrackPhotos(), []);
 
   useEffect(() => {
     const root = rootRef.current;
     const stage = stageRef.current;
     if (!root || !stage) return undefined;
+    entryDelayRef.current ??= consumeMoreEntryTransitionDelay();
 
     const cards = Array.from(stage.querySelectorAll<HTMLElement>(".more-photo-card"));
     let cardMetrics = cards.map(() => ({ width: 0, height: 0 }));
@@ -489,6 +502,7 @@ export function MorePhotoField() {
 
       const timeline = gsap.timeline({
         defaults: { ease: "power3.out" },
+        delay: entryDelayRef.current ?? 0,
         onComplete: () => {
           state.isTracking = true;
           renderTrack();

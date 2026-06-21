@@ -1,5 +1,64 @@
 # Hand Off
 
+## Latest Update - 2026-06-21 Later
+
+- Recent focus: page transitions between homepage and `/more`, direct return positioning to the final white homepage section, and About page close-link placement.
+- `/more` entry transition:
+  - Triggered by the bottom `more` link in `src/components/photography-portfolio.tsx`.
+  - Uses a temporary DOM overlay appended to `document.body` with `.more-page-transition` panels.
+  - Sequence: black left/right panels close toward center, route pushes to `/more`, then white panels close and fade away.
+  - `/more` opening animation is delayed with `bin-more-entry-transition` in `src/components/more-photo-field.tsx` so the photo stack does not start hidden behind the transition.
+- `/more` exit transition:
+  - Implemented in `src/components/history-back-link.tsx` with `transitionVariant="more-exit"`.
+  - Used by `/more` footer `BIN` and `close` links in `src/app/more/page.tsx`.
+  - Current desired sequence: black panels close first, then white panels close, then navigate home.
+  - After discussion, the return should not visibly scroll or animate the homepage upward. It should directly land on the final white homepage section.
+  - For `/more` exit, use `router.push("/", { scroll: false })` rather than `router.back()`. `router.back()` can restore an old browser-history scroll position and cause the wrong landing behavior.
+  - The exit writes `bin-return-home-final-once`; homepage consumes it to skip intro and jump directly to the final white section.
+- Homepage direct-final return behavior:
+  - Implemented in `src/components/photography-portfolio.tsx`.
+  - On `bin-return-home-final-once`, the homepage skips intro, scrolls to document bottom over a few frames while still covered by the transition overlay, and sets the final white sheet/words directly to their final state.
+  - Do not reintroduce a visible "slide up to final page" effect for this return path; the user explicitly rejected that logic and asked whether returning directly to the final page is possible.
+- About page close placement:
+  - `src/app/about/page.tsx`: `close` was moved out of `.about-page__header` so it is no longer affected by the header transform animation.
+  - `src/app/globals.css`: `.about-page__close` is now fixed at the bottom-right, using a position and scale close to `/more`'s close link.
+  - Important: keeping `close` inside the animated header makes `position: fixed` behave relative to the transformed header, causing it to stay near the top. Keep it as an independent child of `.about-page`.
+- Verification after this work:
+  - `npm.cmd run typecheck` passed.
+  - `npm.cmd run lint` passed with the same existing 3 warnings in `src/components/photography-portfolio.tsx`.
+  - Playwright QA passed for `/more` returning directly to the final homepage white section:
+    - final sheet was in viewport (`top: -1`, `bottom: 899` in a 1440x900 test).
+    - transition overlay was removed.
+    - no console/page errors.
+  - Playwright screenshot verification for About close after moving it out of the header could not be rerun because the tool approval was rejected due usage limits. The structure was fixed after an earlier failed QA showed `close` was still top-positioned because of the transformed header.
+- If continuing:
+  - For `/more` entry/exit timing, tune only durations/eases in `openMorePage` and `HistoryBackLink` before changing structure.
+  - For return-to-home behavior, preserve direct final-page landing; do not switch back to browser history restoration or visible scroll-to-bottom animation.
+  - For About close placement, inspect `/about` manually or with Playwright once available; expected position is bottom-right like `/more` close.
+
+## Latest Update - 2026-06-21
+
+- Recent focus: homepage location/tube text section in `src/components/tube-text-scroll.tsx` and related styles in `src/app/globals.css`.
+- User-reported issue: during the `SHOT IN` city word transition, the dark red halo around words such as `WENZHOU` / `BEIHAI` changes abruptly. The problem is specifically the outside red glow/halo shape and radius, not the city word text color itself.
+- Important interpretation:
+  - The visual jump is between the animated/melting glow state and the settled/clear glow state.
+  - In the original implementation, animated glow used a much larger blur/scale (`meltGlowFilter`, outgoing glow `scale`) than the settled glow (`clearGlowFilter`, `scale: 1`), so the outer red halo can appear to snap from wide to tight.
+  - Do not solve this by making the main text pure red; the user wants the original black text with dark red glow feeling.
+  - Do not solve this by adding a separate fixed aura layer unless explicitly requested again; that attempt was rejected and reverted because it did not match the user's visual read.
+- Current minimal attempted fix:
+  - Kept the original structure and dark red theme.
+  - Reduced the gap between animated glow and settled glow:
+    - `meltGlowFilter` changed from roughly `blur(48px) contrast(1.9) saturate(1.5)` to a smaller animated glow (`blur(30px) contrast(1.55) saturate(1.42)`).
+    - outgoing glow `scale` reduced from `1.42` to `1.2`.
+    - final settle tween duration increased from `0.24s` to `0.48s` with `power2.out`.
+  - This is intended to keep the dark red feeling while reducing the sudden halo contraction.
+- Verified after the latest change:
+  - `npm.cmd run typecheck` passed.
+- If continuing this issue:
+  - First visually inspect the transition frame-by-frame in the browser.
+  - Tune only `meltGlowFilter`, outgoing glow `scale`, and the final settle tween duration/ease before changing structure.
+  - Avoid broad rewrites of `TubeTextScroll`; the user has already had several unsuccessful iterations and wants precise visual tuning.
+
 ## Latest State - 2026-06-20
 
 This document is the current project handoff for `F:\Desktop\web-black`. It records the practical project knowledge, current visual direction, known pitfalls, preview status, and the latest `/more` animation work.

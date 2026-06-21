@@ -4,7 +4,7 @@ import type { CSSProperties, MouseEvent } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import photos from "@/data/portfolio-photos.json";
 import { TubeTextScroll } from "@/components/tube-text-scroll";
 
@@ -48,6 +48,9 @@ type SocialQrCard = {
 
 const portfolioPhotos = photos as PortfolioPhoto[];
 const fallbackPalette = ["#d8d8d2", "#8f9795", "#242827"];
+const skipHomeIntroOnceKey = "bin-skip-home-intro-once";
+const moreEntryTransitionKey = "bin-more-entry-transition";
+const returnHomeFinalOnceKey = "bin-return-home-final-once";
 const socialQrCards: SocialQrCard[] = [
   {
     id: "rednote",
@@ -68,6 +71,34 @@ const socialQrCards: SocialQrCard[] = [
 ];
 const finalCreditWords = ["ALL", "SHOT ON", "FUJIFILM", "XH2"] as const;
 
+function markHomeIntroSkipOnce() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(skipHomeIntroOnceKey, "1");
+}
+
+function consumeHomeIntroSkipOnce() {
+  if (typeof window === "undefined") return false;
+
+  const shouldSkip = window.sessionStorage.getItem(skipHomeIntroOnceKey) === "1";
+  if (shouldSkip) window.sessionStorage.removeItem(skipHomeIntroOnceKey);
+
+  return shouldSkip;
+}
+
+function markMoreEntryTransitionOnce() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(moreEntryTransitionKey, "1");
+}
+
+function consumeReturnHomeFinalOnce() {
+  if (typeof window === "undefined") return false;
+
+  const shouldReturnFinal = window.sessionStorage.getItem(returnHomeFinalOnceKey) === "1";
+  if (shouldReturnFinal) window.sessionStorage.removeItem(returnHomeFinalOnceKey);
+
+  return shouldReturnFinal;
+}
+
 const galleryLayoutPattern = [
   { gridColumn: "1 / span 4", offset: 0, width: 96, shift: -2, tilt: -0.08 },
   { gridColumn: "7 / span 4", offset: 10, width: 98, shift: 1, tilt: 0.05 },
@@ -80,10 +111,12 @@ const galleryLayoutPattern = [
 ] as const;
 
 function getGalleryCardWidth(photo: PortfolioPhoto, patternWidth: number) {
-  if (photo.ratio >= 2.3) return Math.min(100, patternWidth + 10);
-  if (photo.ratio >= 1.75) return Math.min(100, patternWidth + 5);
-  if (photo.orientation === "portrait") return Math.max(68, patternWidth - 12);
-  if (photo.orientation === "square") return Math.max(74, patternWidth - 6);
+  if (photo.ratio >= 2.3) return Math.min(128, patternWidth + 28);
+  if (photo.ratio >= 1.75) return Math.min(118, patternWidth + 20);
+  if (photo.ratio >= 1.45) return Math.min(110, patternWidth + 14);
+  if (photo.ratio >= 1.2) return Math.min(104, patternWidth + 8);
+  if (photo.orientation === "portrait") return Math.max(62, patternWidth - 18);
+  if (photo.orientation === "square") return Math.max(76, patternWidth - 6);
   return patternWidth;
 }
 
@@ -271,7 +304,7 @@ function PhotoLocationMap({ photo }: { photo: GalleryItem }) {
         <iframe
           src={getMapEmbedUrl(coordinates)}
           title={`${photo.city} shooting map`}
-          loading="lazy"
+          loading="eager"
           referrerPolicy="no-referrer-when-downgrade"
         />
         <div className="photo-detail-map__wash" aria-hidden="true" />
@@ -333,6 +366,9 @@ export function PhotographyPortfolio() {
   const detailOpenTimelineRef = useRef<{ kill: () => void } | null>(null);
   const detailGlowTweenRef = useRef<{ kill: () => void } | null>(null);
   const aboutTransitionTimeoutRef = useRef<number | null>(null);
+  const moreTransitionRef = useRef(false);
+  const skipIntroRef = useRef(false);
+  const returnFinalRef = useRef(false);
   const scrollLockRef = useRef<{
     bodyTouchAction: string;
     documentOverscrollBehavior: string;
@@ -391,6 +427,8 @@ export function PhotographyPortfolio() {
 
     if (isAboutTransitioning) return;
 
+    markHomeIntroSkipOnce();
+
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduceMotion) {
       router.push("/about");
@@ -403,11 +441,136 @@ export function PhotographyPortfolio() {
     }, 540);
   };
 
+  const openMorePage = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (moreTransitionRef.current) return;
+
+    markHomeIntroSkipOnce();
+    markMoreEntryTransitionOnce();
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) {
+      router.push("/more");
+      return;
+    }
+
+    moreTransitionRef.current = true;
+
+    const transition = document.createElement("div");
+    transition.className = "more-page-transition";
+    transition.setAttribute("aria-hidden", "true");
+    transition.innerHTML = `
+      <span class="more-page-transition__panel more-page-transition__panel--black more-page-transition__panel--left"></span>
+      <span class="more-page-transition__panel more-page-transition__panel--black more-page-transition__panel--right"></span>
+      <span class="more-page-transition__panel more-page-transition__panel--white more-page-transition__panel--left"></span>
+      <span class="more-page-transition__panel more-page-transition__panel--white more-page-transition__panel--right"></span>
+    `;
+    document.body.appendChild(transition);
+
+    const cleanupTransition = () => {
+      transition.remove();
+      moreTransitionRef.current = false;
+    };
+
+    void import("gsap")
+      .then(({ gsap }) => {
+        const blackPanels = Array.from(transition.querySelectorAll<HTMLElement>(".more-page-transition__panel--black"));
+        const whitePanels = Array.from(transition.querySelectorAll<HTMLElement>(".more-page-transition__panel--white"));
+
+        gsap.set(transition, { autoAlpha: 1 });
+        gsap.set(blackPanels, { scaleX: 0 });
+        gsap.set(whitePanels, { scaleX: 0 });
+
+        gsap
+          .timeline({
+            defaults: { overwrite: true },
+            onComplete: cleanupTransition,
+          })
+          .to(blackPanels, {
+            scaleX: 1,
+            duration: 0.58,
+            ease: "power4.inOut",
+          })
+          .call(() => {
+            router.push("/more");
+          })
+          .to(
+            whitePanels,
+            {
+              scaleX: 1,
+              duration: 0.48,
+              ease: "power3.inOut",
+            },
+            ">-0.04",
+          )
+          .to(transition, {
+            autoAlpha: 0,
+            duration: 0.16,
+            ease: "power1.out",
+          });
+      })
+      .catch(() => {
+        cleanupTransition();
+        router.push("/more");
+      });
+  };
+
   useEffect(() => {
     return () => {
       if (aboutTransitionTimeoutRef.current !== null) {
         window.clearTimeout(aboutTransitionTimeoutRef.current);
       }
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const shouldSkipIntro = consumeHomeIntroSkipOnce();
+    const shouldReturnFinal = consumeReturnHomeFinalOnce();
+    if (!shouldSkipIntro && !shouldReturnFinal) return;
+
+    skipIntroRef.current = true;
+    returnFinalRef.current = shouldReturnFinal;
+
+    const intro = introRef.current;
+    const siteContent = siteContentRef.current;
+    if (!intro || !siteContent) return;
+
+    document.body.style.overflow = "";
+    document.documentElement.style.overflow = "";
+    siteContent.style.opacity = "1";
+    siteContent.style.visibility = "visible";
+    intro.style.opacity = "0";
+    intro.style.display = "none";
+
+    if (shouldReturnFinal) {
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, document.documentElement.scrollHeight);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!returnFinalRef.current) return;
+
+    let frame = 0;
+    let attempts = 0;
+
+    const settleAtFinalPage = () => {
+      attempts += 1;
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      if (attempts < 8) frame = window.requestAnimationFrame(settleAtFinalPage);
+    };
+
+    frame = window.requestAnimationFrame(settleAtFinalPage);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
     };
   }, []);
 
@@ -796,6 +959,7 @@ export function PhotographyPortfolio() {
     const introMask = introMaskRef.current;
     const introMaskText = introMaskTextRef.current;
     const siteContent = siteContentRef.current;
+    const shouldSkipIntro = skipIntroRef.current || consumeHomeIntroSkipOnce();
     if (!intro || !introWord || !introOutline || !introMask || !introMaskText || !siteContent) {
       if (intro && siteContent) {
         document.body.style.overflow = "";
@@ -805,6 +969,16 @@ export function PhotographyPortfolio() {
         intro.style.opacity = "0";
         intro.style.display = "none";
       }
+      return;
+    }
+
+    if (shouldSkipIntro) {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      siteContent.style.opacity = "1";
+      siteContent.style.visibility = "visible";
+      intro.style.opacity = "0";
+      intro.style.display = "none";
       return;
     }
 
@@ -1322,6 +1496,29 @@ export function PhotographyPortfolio() {
           return;
         }
 
+        if (returnFinalRef.current) {
+          if (sheet) {
+            gsap.set(sheet, {
+              y: 0,
+              scaleX: 1,
+              transformOrigin: "50% 100%",
+            });
+          }
+          setFinalAboutVisible(true);
+          gsap.set(section, {
+            "--final-stage-dim": 1,
+            "--final-edge-shadow": 0.18,
+            "--final-paper-pressure": 0,
+          });
+          gsap.set(finalWords, { autoAlpha: 1, y: 0, filter: "blur(0px)", scale: 1 });
+          gsap.set(finalArtifacts, { autoAlpha: 1, y: 0, filter: "blur(0px)", scale: 1 });
+          requestAnimationFrame(() => {
+            ScrollTrigger.refresh();
+            window.scrollTo(0, document.documentElement.scrollHeight);
+          });
+          return;
+        }
+
         setFinalAboutVisible(false);
         gsap.set(section, {
           "--final-stage-dim": 0,
@@ -1538,7 +1735,12 @@ export function PhotographyPortfolio() {
       </div>
 
       <div className="about-float-anchor">
-        <Link className={`about-float${finalAboutVisible ? " is-visible" : ""}`} href="/more" aria-label="Open more photos page">
+        <Link
+          className={`about-float${finalAboutVisible ? " is-visible" : ""}`}
+          href="/more"
+          aria-label="Open more photos page"
+          onClick={openMorePage}
+        >
           <span>more</span>
         </Link>
         <Link
