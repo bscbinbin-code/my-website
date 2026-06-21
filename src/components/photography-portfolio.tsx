@@ -348,6 +348,8 @@ export function PhotographyPortfolio() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [isXh2PreviewVisible, setIsXh2PreviewVisible] = useState(false);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
+  const [heroVideoMode, setHeroVideoMode] = useState<"desktop" | "mobile" | null>(null);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const introWordRef = useRef<SVGTextElement>(null);
   const introOutlineRef = useRef<SVGTextElement>(null);
@@ -368,6 +370,7 @@ export function PhotographyPortfolio() {
   const aboutTransitionTimeoutRef = useRef<number | null>(null);
   const moreTransitionRef = useRef(false);
   const skipIntroRef = useRef(false);
+  const introPlayedRef = useRef(false);
   const returnFinalRef = useRef(false);
   const scrollLockRef = useRef<{
     bodyTouchAction: string;
@@ -413,6 +416,20 @@ export function PhotographyPortfolio() {
   const widePhotoIds = useMemo(() => new Set(portfolioPhotos.filter((photo) => photo.ratio >= 1.75).map((photo) => photo.id)), []);
   const selectedPhoto = useMemo(() => galleryPhotos.find((photo) => photo.id === selectedPhotoId) ?? null, [galleryPhotos, selectedPhotoId]);
   const selectedPalette = selectedPhoto ? (photoPalettes[selectedPhoto.id] ?? fallbackPalette) : fallbackPalette;
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const updateHeroVideoMode = () => {
+      setHeroVideoMode(media.matches ? "mobile" : "desktop");
+    };
+
+    updateHeroVideoMode();
+    media.addEventListener("change", updateHeroVideoMode);
+
+    return () => {
+      media.removeEventListener("change", updateHeroVideoMode);
+    };
+  }, []);
   const selectedSocialQr = useMemo(
     () => socialQrCards.find((card) => card.id === selectedSocialQrId) ?? null,
     [selectedSocialQrId],
@@ -1042,6 +1059,8 @@ export function PhotographyPortfolio() {
   }, []);
 
   useEffect(() => {
+    if (!heroVideoMode || introPlayedRef.current) return;
+
     const intro = introRef.current;
     const introWord = introWordRef.current;
     const introOutline = introOutlineRef.current;
@@ -1062,6 +1081,7 @@ export function PhotographyPortfolio() {
     }
 
     if (shouldSkipIntro) {
+      introPlayedRef.current = true;
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
       siteContent.style.opacity = "1";
@@ -1071,8 +1091,35 @@ export function PhotographyPortfolio() {
       return;
     }
 
+    introPlayedRef.current = true;
     let cleanup = () => {};
     let cancelled = false;
+
+    const waitForHeroVideo = () =>
+      new Promise<void>((resolve) => {
+        const video = heroVideoRef.current;
+        if (!video || video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+          resolve();
+          return;
+        }
+
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          window.clearTimeout(timeout);
+          video.removeEventListener("canplay", finish);
+          video.removeEventListener("loadeddata", finish);
+          video.removeEventListener("error", finish);
+          resolve();
+        };
+        const timeout = window.setTimeout(finish, 2200);
+
+        video.addEventListener("canplay", finish, { once: true });
+        video.addEventListener("loadeddata", finish, { once: true });
+        video.addEventListener("error", finish, { once: true });
+        void video.play().catch(() => undefined);
+      });
 
     const init = async () => {
       const { gsap } = await import("gsap");
@@ -1118,7 +1165,7 @@ export function PhotographyPortfolio() {
           defaults: { ease: "power3.out" },
           onComplete: finishIntro,
         });
-        const fallbackExit = window.setTimeout(finishIntro, 4200);
+        const fallbackExit = window.setTimeout(finishIntro, 6500);
 
         tl.to(introWord, {
           autoAlpha: 1,
@@ -1156,6 +1203,11 @@ export function PhotographyPortfolio() {
           )
           .to({}, {
             duration: 0.16,
+          })
+          .addPause(">", () => {
+            void waitForHeroVideo().then(() => {
+              if (!cancelled) tl.play();
+            });
           })
           .to(
             introOutline,
@@ -1212,7 +1264,7 @@ export function PhotographyPortfolio() {
       cancelled = true;
       cleanup();
     };
-  }, []);
+  }, [heroVideoMode]);
 
   useEffect(() => {
     const section = galleryRef.current;
@@ -1869,28 +1921,20 @@ export function PhotographyPortfolio() {
       <div className="photo-site-content" ref={siteContentRef}>
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
-            <video
-              className="photo-hero-video photo-hero-video--desktop"
-              src="/portfolio/videos/web7.mp4"
-              poster={portfolioPhotos[0].src}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              aria-label="BIN portfolio hero video"
-            />
-            <video
-              className="photo-hero-video photo-hero-video--mobile"
-              src="/portfolio/videos/web-6-phone2.mp4"
-              poster={portfolioPhotos[0].src}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              aria-label="BIN mobile portfolio hero video"
-            />
+            {heroVideoMode ? (
+              <video
+                ref={heroVideoRef}
+                className={`photo-hero-video photo-hero-video--${heroVideoMode}`}
+                src={heroVideoMode === "mobile" ? "/portfolio/videos/web-6-phone2.mp4" : "/portfolio/videos/web7.mp4"}
+                poster={portfolioPhotos[0].src}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label={heroVideoMode === "mobile" ? "BIN mobile portfolio hero video" : "BIN portfolio hero video"}
+              />
+            ) : null}
             <HudCorners />
           </div>
           <HeroHud />

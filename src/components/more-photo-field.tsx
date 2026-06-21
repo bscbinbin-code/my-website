@@ -106,6 +106,7 @@ export function MorePhotoField() {
     const cards = Array.from(stage.querySelectorAll<HTMLElement>(".more-photo-card"));
     let cardMetrics = cards.map(() => ({ width: 0, height: 0 }));
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarsePointer = window.matchMedia("(pointer: coarse)");
     const state = {
       isTracking: false,
       progress: initialTrackProgress,
@@ -120,6 +121,7 @@ export function MorePhotoField() {
     let previewLayer: HTMLDivElement | null = null;
     let previewFigure: HTMLElement | null = null;
     let activePreviewIndex = -1;
+    let touchY: number | null = null;
 
     const measureCards = () => {
       cardMetrics = cards.map((card) => ({
@@ -327,6 +329,36 @@ export function MorePhotoField() {
 
       const nextVelocity = state.velocity + event.deltaY * 0.018;
       state.velocity = gsap.utils.clamp(-24, 32, nextVelocity);
+    };
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (!coarsePointer.matches) return;
+      touchY = event.touches[0]?.clientY ?? null;
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      if (!coarsePointer.matches || touchY === null) return;
+      event.preventDefault();
+      if (state.isPreviewOpen) return;
+
+      const nextY = event.touches[0]?.clientY;
+      if (nextY === undefined) return;
+
+      const deltaY = touchY - nextY;
+      touchY = nextY;
+
+      if (deltaY < 0 && state.progress <= reverseProgressLimit) {
+        state.progress = reverseProgressLimit;
+        state.velocity = 0;
+        state.reverseHoldUntil = performance.now() + reverseHoldMs;
+        return;
+      }
+
+      state.velocity = gsap.utils.clamp(-24, 32, state.velocity + deltaY * 0.045);
+    };
+
+    const onTouchEnd = () => {
+      touchY = null;
     };
 
     const getPreviewTargetRect = (rect: DOMRect) => {
@@ -619,6 +651,10 @@ export function MorePhotoField() {
     gsap.ticker.add(tick);
     window.addEventListener("resize", setDimensions);
     root.addEventListener("wheel", onWheel, { passive: false });
+    root.addEventListener("touchstart", onTouchStart, { passive: true });
+    root.addEventListener("touchmove", onTouchMove, { passive: false });
+    root.addEventListener("touchend", onTouchEnd);
+    root.addEventListener("touchcancel", onTouchEnd);
     cards.forEach((card) => {
       card.addEventListener("click", onCardClick);
     });
@@ -628,6 +664,10 @@ export function MorePhotoField() {
         card.removeEventListener("click", onCardClick);
       });
       root.removeEventListener("wheel", onWheel);
+      root.removeEventListener("touchstart", onTouchStart);
+      root.removeEventListener("touchmove", onTouchMove);
+      root.removeEventListener("touchend", onTouchEnd);
+      root.removeEventListener("touchcancel", onTouchEnd);
       window.removeEventListener("resize", setDimensions);
       gsap.ticker.remove(tick);
       removePreviewLayer();
