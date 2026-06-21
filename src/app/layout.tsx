@@ -5,11 +5,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Photo Archive",
+  title: "BSCBINBIN.COM",
   description:
     "A personal photography archive with immersive scrolling gallery.",
   openGraph: {
-    title: "Photo Archive",
+    title: "BSCBINBIN.COM",
     description: "A personal photography archive with immersive scrolling gallery.",
     images: ["/portfolio/desktop-bg.jpg"],
   },
