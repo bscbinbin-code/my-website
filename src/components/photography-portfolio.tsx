@@ -348,8 +348,8 @@ export function PhotographyPortfolio() {
   const [selectedPhotoId, setSelectedPhotoId] = useState<number | null>(null);
   const [isXh2PreviewVisible, setIsXh2PreviewVisible] = useState(false);
   const [photoPalettes, setPhotoPalettes] = useState<Record<number, string[]>>({});
-  const [heroVideoMode, setHeroVideoMode] = useState<"desktop" | "mobile" | null>(null);
-  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const desktopHeroVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileHeroVideoRef = useRef<HTMLVideoElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const introWordRef = useRef<SVGTextElement>(null);
   const introOutlineRef = useRef<SVGTextElement>(null);
@@ -417,19 +417,6 @@ export function PhotographyPortfolio() {
   const selectedPhoto = useMemo(() => galleryPhotos.find((photo) => photo.id === selectedPhotoId) ?? null, [galleryPhotos, selectedPhotoId]);
   const selectedPalette = selectedPhoto ? (photoPalettes[selectedPhoto.id] ?? fallbackPalette) : fallbackPalette;
 
-  useEffect(() => {
-    const media = window.matchMedia("(max-width: 900px)");
-    const updateHeroVideoMode = () => {
-      setHeroVideoMode(media.matches ? "mobile" : "desktop");
-    };
-
-    updateHeroVideoMode();
-    media.addEventListener("change", updateHeroVideoMode);
-
-    return () => {
-      media.removeEventListener("change", updateHeroVideoMode);
-    };
-  }, []);
   const selectedSocialQr = useMemo(
     () => socialQrCards.find((card) => card.id === selectedSocialQrId) ?? null,
     [selectedSocialQrId],
@@ -1059,7 +1046,7 @@ export function PhotographyPortfolio() {
   }, []);
 
   useEffect(() => {
-    if (!heroVideoMode || introPlayedRef.current) return;
+    if (introPlayedRef.current) return;
 
     const intro = introRef.current;
     const introWord = introWordRef.current;
@@ -1097,7 +1084,7 @@ export function PhotographyPortfolio() {
 
     const waitForHeroVideo = () =>
       new Promise<void>((resolve) => {
-        const video = heroVideoRef.current;
+        const video = window.matchMedia("(max-width: 900px)").matches ? mobileHeroVideoRef.current : desktopHeroVideoRef.current;
         if (!video || video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
           resolve();
           return;
@@ -1265,7 +1252,7 @@ export function PhotographyPortfolio() {
       cancelled = true;
       cleanup();
     };
-  }, [heroVideoMode]);
+  }, []);
 
   useEffect(() => {
     const section = galleryRef.current;
@@ -1922,20 +1909,30 @@ export function PhotographyPortfolio() {
       <div className="photo-site-content" ref={siteContentRef}>
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
-            {heroVideoMode ? (
-              <video
-                ref={heroVideoRef}
-                className={`photo-hero-video photo-hero-video--${heroVideoMode}`}
-                src={heroVideoMode === "mobile" ? "/portfolio/videos/web-6-phone2.mp4" : "/portfolio/videos/web7.mp4"}
-                poster={portfolioPhotos[0].src}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                aria-label={heroVideoMode === "mobile" ? "BIN mobile portfolio hero video" : "BIN portfolio hero video"}
-              />
-            ) : null}
+            <video
+              ref={desktopHeroVideoRef}
+              className="photo-hero-video photo-hero-video--desktop"
+              src="/portfolio/videos/web7.mp4"
+              poster={portfolioPhotos[0].src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="BIN portfolio hero video"
+            />
+            <video
+              ref={mobileHeroVideoRef}
+              className="photo-hero-video photo-hero-video--mobile"
+              src="/portfolio/videos/web-6-phone2.mp4"
+              poster={portfolioPhotos[0].src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="BIN mobile portfolio hero video"
+            />
             <HudCorners />
           </div>
           <HeroHud />
