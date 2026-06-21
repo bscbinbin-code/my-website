@@ -761,6 +761,95 @@ export function PhotographyPortfolio() {
   }, [selectedPhoto]);
 
   useEffect(() => {
+    const media = detailFrameRef.current?.querySelector<HTMLElement>(".photo-detail-media");
+    const image = media?.querySelector<HTMLImageElement>("img");
+    if (!selectedPhoto || !media || !image) return;
+
+    const pointers = new Map<number, { x: number; y: number }>();
+    let x = 0;
+    let y = 0;
+    let scale = 1;
+    let startX = 0;
+    let startY = 0;
+    let startScale = 1;
+    let startDistance = 0;
+    let startMidpoint = { x: 0, y: 0 };
+
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const apply = () => {
+      image.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+    };
+    const getDistance = () => {
+      const [first, second] = [...pointers.values()];
+      if (!first || !second) return 0;
+      return Math.hypot(second.x - first.x, second.y - first.y);
+    };
+    const getMidpoint = () => {
+      const [first, second] = [...pointers.values()];
+      if (!first || !second) return { x: 0, y: 0 };
+      return { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      media.setPointerCapture(event.pointerId);
+      if (pointers.size === 1) {
+        startX = event.clientX - x;
+        startY = event.clientY - y;
+      }
+      if (pointers.size === 2) {
+        startScale = scale;
+        startDistance = getDistance();
+        startMidpoint = getMidpoint();
+      }
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pointers.size === 1) {
+        x = event.clientX - startX;
+        y = event.clientY - startY;
+      } else if (pointers.size >= 2 && startDistance > 0) {
+        const midpoint = getMidpoint();
+        scale = clamp(startScale * (getDistance() / startDistance), 1, 4);
+        x += midpoint.x - startMidpoint.x;
+        y += midpoint.y - startMidpoint.y;
+        startMidpoint = midpoint;
+      }
+
+      if (scale === 1) {
+        x = clamp(x, -24, 24);
+        y = clamp(y, -24, 24);
+      }
+      apply();
+    };
+    const onPointerUp = (event: PointerEvent) => {
+      pointers.delete(event.pointerId);
+      if (pointers.size === 1) {
+        const [remaining] = [...pointers.values()];
+        if (remaining) {
+          startX = remaining.x - x;
+          startY = remaining.y - y;
+        }
+      }
+    };
+
+    media.addEventListener("pointerdown", onPointerDown);
+    media.addEventListener("pointermove", onPointerMove);
+    media.addEventListener("pointerup", onPointerUp);
+    media.addEventListener("pointercancel", onPointerUp);
+
+    return () => {
+      image.style.transform = "";
+      media.removeEventListener("pointerdown", onPointerDown);
+      media.removeEventListener("pointermove", onPointerMove);
+      media.removeEventListener("pointerup", onPointerUp);
+      media.removeEventListener("pointercancel", onPointerUp);
+    };
+  }, [selectedPhoto]);
+
+  useEffect(() => {
     const overlay = detailOverlayRef.current;
     const frame = detailFrameRef.current;
     if (!selectedPhoto || !overlay || !frame) return;
@@ -1149,11 +1238,12 @@ export function PhotographyPortfolio() {
           {
             reduceMotion: "(prefers-reduced-motion: reduce)",
             desktop: "(min-width: 901px)",
+            mobile: "(max-width: 900px)",
           },
           (context) => {
-            const { reduceMotion, desktop } = context.conditions ?? {};
+            const { reduceMotion, desktop, mobile } = context.conditions ?? {};
 
-            if (reduceMotion) {
+            if (reduceMotion || mobile) {
               if (workTitle) gsap.set(workTitle, { autoAlpha: 1, clearProps: "transform,filter" });
               gsap.set(cards, { autoAlpha: 1, clearProps: "transform" });
               return;
@@ -1780,6 +1870,7 @@ export function PhotographyPortfolio() {
         <section id="top" className="photo-hero">
           <div className="photo-hero-media">
             <video
+              className="photo-hero-video photo-hero-video--desktop"
               src="/portfolio/videos/web7.mp4"
               poster={portfolioPhotos[0].src}
               autoPlay
@@ -1788,6 +1879,17 @@ export function PhotographyPortfolio() {
               playsInline
               preload="auto"
               aria-label="BIN portfolio hero video"
+            />
+            <video
+              className="photo-hero-video photo-hero-video--mobile"
+              src="/portfolio/videos/web-6-phone2.mp4"
+              poster={portfolioPhotos[0].src}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-label="BIN mobile portfolio hero video"
             />
             <HudCorners />
           </div>

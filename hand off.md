@@ -1,5 +1,60 @@
 # Hand Off
 
+## Latest Update - 2026-06-21 Mobile Hero / Touch Polish
+
+- Recent focus: mobile homepage hero, mobile video source, bottom HUD overlap, city/location mobile readability, and About `close` touch target.
+- GitHub note:
+  - Earlier work was committed and pushed to `origin/main` as commit `62d9507`.
+  - The mobile hero/video changes below are after that push and are not committed yet unless a later agent does it.
+- Current active working tree after this update:
+  - `hand off.md`
+  - `src/app/globals.css`
+  - `src/components/photography-portfolio.tsx`
+  - `public/portfolio/videos/web-6-phone2.mp4` (new, copied from `Photos\web 6 phone2.mp4`; original source asset remains untouched)
+- Mobile hero video:
+  - `src/components/photography-portfolio.tsx` now renders two hero videos:
+    - desktop: `/portfolio/videos/web7.mp4` with class `.photo-hero-video--desktop`
+    - mobile: `/portfolio/videos/web-6-phone2.mp4` with class `.photo-hero-video--mobile`
+  - `src/app/globals.css` hides mobile video by default, then at `@media (max-width: 900px)` hides desktop video and shows the mobile one.
+  - Verification in the in-app browser at `430x932` confirmed the visible video source is `http://localhost:3000/portfolio/videos/web-6-phone2.mp4`.
+  - Keep this split; do not replace the desktop hero video when only mobile is requested.
+- Mobile `BIN` hero title:
+  - User wants the PC-like feeling where the giant `BIN` touches the top and edges, but without visibly cutting off B/N.
+  - Current mobile rules in `src/app/globals.css`:
+    - `.photo-hero-title`: `left: 0`, `top: -1.8vw`, `width: 100%`, `font-size: clamp(148px, 45.5vw, 196px)`, `line-height: 0.72`, `padding-inline: 0`.
+    - first letter transform: `translateX(0.1em)`.
+    - middle letter transform: `translateX(0)`.
+    - last letter transform: `translateX(-0.1em)`.
+  - The apparent reversal is intentional: with transform `0`, the glyphs themselves protrude about 20px (`B -20`, `N 450`) in a 430px viewport. Moving B inward by `0.1em` and N inward by `-0.1em` makes the glyph boxes complete while still edge-hugging.
+  - Latest measured result at `430x932`:
+    - `B` left `0`, right `152`
+    - `I` left `172`, right `248`
+    - `N` left `267`, right `430`
+    - document horizontal overflow `0`
+  - The user previously said the `B -20 / N 450` direction felt visually correct, but the newest instruction was to "收一点" so the glyphs are complete in-screen while keeping the edge-hugging feeling. Current state matches that.
+- Mobile bottom hero HUD:
+  - Mobile `.photo-hero-caption strong` is hidden to remove `PHOTO PORTFOLIO` overlap on phone.
+  - PC still keeps the full bottom caption.
+  - The round `N` button seen in screenshots is the Codex/in-app browser overlay, not a website DOM button.
+- About `close` tap target:
+  - `close` remains visually small text.
+  - Hit area is now at least `48px x 48px`.
+  - Position is bottom-right and safe-area aware with `env(safe-area-inset-right/bottom)`.
+  - This follows the agreed mobile logic: small visual label, large touch target, bottom-right placement.
+- Mobile city/location section:
+  - Mobile `.photo-tube-text` was reduced so the city word is more readable on phone:
+    - `height: clamp(82px, 23vw, 112px)`
+    - `font-size: clamp(50px, 13.8vw, 60px)`
+  - This was a targeted mobile readability fix and should not affect desktop.
+- Verification after the latest mobile changes:
+  - `npm.cmd run typecheck` passed.
+  - In-app browser measurement passed at `430x932` for mobile `BIN` bounds and no horizontal overflow.
+- If continuing:
+  - If the user says B/N should feel even closer to the screen edge, tune only the first/last letter `translateX(...)` values in the mobile media query, in very small steps like `0.02em`.
+  - Do not change the desktop `.photo-hero-title` or desktop video for mobile-only requests.
+  - If the user wants a different phone video, copy the file into `public/portfolio/videos/` with an ASCII filename and update only the mobile video `src`.
+  - Before committing/pushing, remember the new mp4 is large (about 60 MB); confirm GitHub accepts it or use Git LFS if the repository requires it.
+
 ## Latest Update - 2026-06-21 Later
 
 - Recent focus: page transitions between homepage and `/more`, direct return positioning to the final white homepage section, and About page close-link placement.

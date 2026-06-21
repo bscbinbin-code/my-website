@@ -330,6 +330,19 @@ export function MorePhotoField() {
     };
 
     const getPreviewTargetRect = (rect: DOMRect) => {
+      if (state.width <= 760) {
+        const ratio = rect.width / rect.height;
+        const width = state.width;
+        const height = width / ratio;
+
+        return {
+          x: 0,
+          y: (state.height - height) / 2,
+          width,
+          height,
+        };
+      }
+
       const availableWidth = Math.max(220, state.width - previewMargin * 2);
       const availableHeight = Math.max(220, state.height - previewMargin * 2);
       const scale = Math.min(availableWidth / rect.width, availableHeight / rect.height, 1.82);
