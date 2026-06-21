@@ -1088,6 +1088,30 @@ export function PhotographyPortfolio() {
   }, []);
 
   useEffect(() => {
+    const video = mobileHeroVideoRef.current;
+    if (!video) return;
+
+    const playMobileHeroVideo = () => {
+      if (!window.matchMedia("(max-width: 900px)").matches) return;
+      video.muted = true;
+      video.playsInline = true;
+      void video.play().catch(() => undefined);
+    };
+
+    video.load();
+    playMobileHeroVideo();
+    window.addEventListener("pageshow", playMobileHeroVideo);
+    document.addEventListener("visibilitychange", playMobileHeroVideo);
+    window.addEventListener("touchstart", playMobileHeroVideo, { passive: true, once: true });
+
+    return () => {
+      window.removeEventListener("pageshow", playMobileHeroVideo);
+      document.removeEventListener("visibilitychange", playMobileHeroVideo);
+      window.removeEventListener("touchstart", playMobileHeroVideo);
+    };
+  }, []);
+
+  useEffect(() => {
     if (introPlayedRef.current) return;
 
     const intro = introRef.current;
@@ -1994,7 +2018,7 @@ export function PhotographyPortfolio() {
               muted
               loop
               playsInline
-              preload="metadata"
+              preload="auto"
               aria-label="BIN mobile portfolio hero video"
             />
             <HudCorners />

@@ -164,6 +164,7 @@ export function TubeTextScroll() {
         };
 
         const transition = () => {
+          const isMobile = window.matchMedia("(max-width: 900px)").matches;
           const currentWord = cityNames[cityIndex].en;
           const nextIndex = (cityIndex + 1) % cityNames.length;
           const nextWord = cityNames[nextIndex].en;
@@ -225,12 +226,15 @@ export function TubeTextScroll() {
               outgoingTargets,
               {
                 filter: (index) => (index % 2 === 0 ? meltTextFilter : meltGlowFilter),
-                opacity: (index) => (index % 2 === 0 ? 0.08 : 0.64),
-                scale: (index) => (index % 2 === 0 ? 1.14 : 1.2),
+                opacity: (index) => {
+                  if (!isMobile) return index % 2 === 0 ? 0.08 : 0.64;
+                  return index % 2 === 0 ? 0 : 0.18;
+                },
+                scale: (index) => (index % 2 === 0 ? 1.14 : isMobile ? 1.08 : 1.2),
                 textShadow: meltShadow,
-                duration: 0.7,
+                duration: isMobile ? 0.34 : 0.7,
                 ease: "power2.inOut",
-                stagger: 0.018,
+                stagger: isMobile ? 0.008 : 0.018,
               },
               "<",
             );
@@ -294,10 +298,10 @@ export function TubeTextScroll() {
               {
                 opacity: 0,
                 scale: 0.98,
-                duration: 0.42,
+                duration: isMobile ? 0.18 : 0.42,
                 ease: "power2.out",
               },
-              "<",
+              isMobile ? "<-=0.24" : "<",
             );
         };
 
