@@ -183,6 +183,32 @@
   pointer-events: none;
 }
 
+:global(.more-photo-preview-close) {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 2;
+  appearance: none;
+  border: 0;
+  padding: 12px 0;
+  background: transparent;
+  color: rgb(20 20 20 / 0.58);
+  font: inherit;
+  line-height: 1;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  :global(.more-photo-preview-close) {
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    min-width: 54px;
+    min-height: 44px;
+    color: rgb(20 20 20 / 0.64);
+  }
+}
+
 :global(.more-photo-card.is-portrait) {
   width: min(var(--more-card-width), var(--more-card-max), 64vw, calc(72svh * var(--more-card-ratio-value)));
 }

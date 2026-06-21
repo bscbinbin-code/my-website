@@ -1994,8 +1994,8 @@ export function PhotographyPortfolio() {
                   <img
                     src={photo.src}
                     alt={photo.title}
-                    loading={index < 8 ? "eager" : "lazy"}
-                    fetchPriority={index < 8 ? "high" : "auto"}
+                    loading={index < 16 ? "eager" : "lazy"}
+                    fetchPriority={index < 16 ? "high" : "auto"}
                     decoding="async"
                   />
                   <span className="photo-card-scan" aria-hidden="true" />

@@ -121,6 +121,7 @@ export function MorePhotoField() {
     let previewLayer: HTMLDivElement | null = null;
     let previewFigure: HTMLElement | null = null;
     let activePreviewIndex = -1;
+    let loadingPreviewIndex = -1;
     let touchY: number | null = null;
 
     const measureCards = () => {
@@ -394,6 +395,7 @@ export function MorePhotoField() {
       previewLayer = null;
       previewFigure = null;
       activePreviewIndex = -1;
+      loadingPreviewIndex = -1;
     };
 
     const closePreview = () => {
@@ -446,12 +448,32 @@ export function MorePhotoField() {
       });
     };
 
-    const openPreview = (index: number) => {
-      if (state.isPreviewOpen || !state.isTracking) return;
+    const preloadPreviewImage = (src: string) =>
+      new Promise<void>((resolve) => {
+        const loader = new window.Image();
+        const finish = () => {
+          loader.onload = null;
+          loader.onerror = null;
+          resolve();
+        };
+
+        loader.decoding = "async";
+        loader.onload = finish;
+        loader.onerror = finish;
+        loader.src = src;
+        if (loader.complete) finish();
+      });
+
+    const openPreview = async (index: number) => {
+      if (state.isPreviewOpen || !state.isTracking || loadingPreviewIndex >= 0) return;
       const card = cards[index];
       const item = trackPhotos[index];
       const image = card?.querySelector<HTMLImageElement>("img");
       if (!card || !item || !image || gsap.getProperty(card, "autoAlpha") === 0) return;
+
+      loadingPreviewIndex = index;
+      await preloadPreviewImage(item.src);
+      if (loadingPreviewIndex !== index || state.isPreviewOpen || !state.isTracking) return;
 
       const sourceRect = card.getBoundingClientRect();
       const targetRect = getPreviewTargetRect(sourceRect);
@@ -459,19 +481,29 @@ export function MorePhotoField() {
       state.velocity = 0;
       state.hiddenPreviewIndex = index;
       activePreviewIndex = index;
+      loadingPreviewIndex = -1;
 
       previewLayer = document.createElement("div");
       previewLayer.className = "more-photo-preview-layer";
       previewFigure = document.createElement("figure");
       previewFigure.className = "more-photo-preview";
+      const closeButton = document.createElement("button");
+      closeButton.className = "more-photo-preview-close";
+      closeButton.type = "button";
+      closeButton.textContent = "close";
       const previewImage = document.createElement("img");
       previewImage.src = item.src;
       previewImage.alt = "";
       previewFigure.append(previewImage);
-      previewLayer.append(previewFigure);
+      previewLayer.append(previewFigure, closeButton);
       root.append(previewLayer);
 
       previewLayer.addEventListener("click", closePreview);
+      closeButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closePreview();
+      });
       previewFigure.addEventListener("click", (event) => {
         event.stopPropagation();
       });
@@ -503,7 +535,7 @@ export function MorePhotoField() {
       const card = (event.currentTarget as HTMLElement | null);
       if (!card) return;
       const index = cards.indexOf(card);
-      if (index >= 0) openPreview(index);
+      if (index >= 0) void openPreview(index);
     };
 
     const ctx = gsap.context(() => {
