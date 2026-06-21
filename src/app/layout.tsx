@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+function getMetadataBase() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "BSCBINBIN.COM",
+  metadataBase: getMetadataBase(),
+  title: "BSCBINBIN",
   description:
     "A personal photography archive with immersive scrolling gallery.",
   openGraph: {
-    title: "BSCBINBIN.COM",
+    title: "BSCBINBIN",
     description: "A personal photography archive with immersive scrolling gallery.",
     images: ["/portfolio/desktop-bg.jpg"],
   },
