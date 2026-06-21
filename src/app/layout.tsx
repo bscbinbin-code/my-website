@@ -1,16 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-function getMetadataBase() {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
-  } catch {
-    return new URL("http://localhost:3000");
-  }
-}
-
 export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
+  metadataBase: new URL("https://bscbinbin.vercel.app"),
   title: "BSCBINBIN",
   description:
     "A personal photography archive with immersive scrolling gallery.",
