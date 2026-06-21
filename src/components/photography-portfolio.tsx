@@ -1123,6 +1123,7 @@ export function PhotographyPortfolio() {
 
     const init = async () => {
       const { gsap } = await import("gsap");
+      await document.fonts.ready;
       if (cancelled) return;
 
       const ctx = gsap.context(() => {

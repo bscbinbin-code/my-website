@@ -172,6 +172,7 @@ export function TubeTextScroll() {
           const sharedCurrent = new Set(pairs.map((pair) => pair.currentIndex));
           const sharedNext = new Set(pairs.map((pair) => pair.nextIndex));
           const outgoing = letters.filter((_, index) => !sharedCurrent.has(index));
+          const outgoingTargets = outgoing.flatMap((letter) => [letter.text, letter.glow]);
           const sharedTargets = pairs.flatMap((pair) => {
             const letter = letters[pair.currentIndex];
             return [letter.text, letter.glow];
@@ -221,7 +222,7 @@ export function TubeTextScroll() {
               ease: "power2.inOut",
             }, "<")
             .to(
-              outgoing.flatMap((letter) => [letter.text, letter.glow]),
+              outgoingTargets,
               {
                 filter: (index) => (index % 2 === 0 ? meltTextFilter : meltGlowFilter),
                 opacity: (index) => (index % 2 === 0 ? 0.08 : 0.64),
@@ -287,6 +288,16 @@ export function TubeTextScroll() {
                 ease: "power2.out",
               },
               ">-=0.18",
+            )
+            .to(
+              outgoingTargets,
+              {
+                opacity: 0,
+                scale: 0.98,
+                duration: 0.42,
+                ease: "power2.out",
+              },
+              "<",
             );
         };
 

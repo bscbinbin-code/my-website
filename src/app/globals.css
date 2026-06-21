@@ -1000,7 +1000,7 @@
   }
 
   .photo-intro-svg text {
-    font-family: "Helvetica Neue", Arial, ui-sans-serif, system-ui, sans-serif;
+    font-family: "Arial Black", Arial, ui-sans-serif, system-ui, sans-serif;
     font-size: 132px;
     font-weight: 900;
     letter-spacing: -0.075em;
@@ -1009,6 +1009,7 @@
 
   .photo-intro-word {
     fill: #f3f2ed;
+    visibility: hidden;
   }
 
   .photo-intro-outline {
@@ -1017,6 +1018,7 @@
     stroke-width: 3.25;
     vector-effect: non-scaling-stroke;
     paint-order: stroke;
+    visibility: hidden;
   }
 
   .photo-intro-svg mask {
