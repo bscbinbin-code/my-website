@@ -45,6 +45,7 @@ const previewMargin = 80;
 const introLeadPhotoIds = [3, 8];
 const moreEntryTransitionKey = "bin-more-entry-transition";
 const moreEntryTransitionDelay = 0.58;
+const preloadConcurrency = 6;
 
 const orderedMorePhotos = [
   ...introLeadPhotoIds
@@ -91,6 +92,54 @@ function getTrackPhotos(): TrackPhoto[] {
   });
 }
 
+function preloadImage(src: string) {
+  return new Promise<void>((resolve) => {
+    const image = new window.Image();
+    const finish = () => {
+      image.onload = null;
+      image.onerror = null;
+      resolve();
+    };
+
+    image.decoding = "async";
+    image.onload = finish;
+    image.onerror = finish;
+    image.src = src;
+    if (image.complete) finish();
+  });
+}
+
+function preloadImages(sources: string[], onProgress: (progress: number) => void) {
+  const uniqueSources = [...new Set(sources)];
+  let nextIndex = 0;
+  let completed = 0;
+
+  if (uniqueSources.length === 0) {
+    onProgress(1);
+    return Promise.resolve();
+  }
+
+  onProgress(0);
+
+  const loadNext = async (): Promise<void> => {
+    const src = uniqueSources[nextIndex];
+    nextIndex += 1;
+    if (!src) return;
+
+    await preloadImage(src);
+    completed += 1;
+    onProgress(completed / uniqueSources.length);
+    await loadNext();
+  };
+
+  const workers = Array.from(
+    { length: Math.min(preloadConcurrency, uniqueSources.length) },
+    () => loadNext(),
+  );
+
+  return Promise.all(workers).then(() => undefined);
+}
+
 export function MorePhotoField() {
   const rootRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -123,6 +172,12 @@ export function MorePhotoField() {
     let activePreviewIndex = -1;
     let loadingPreviewIndex = -1;
     let touchY: number | null = null;
+    let isDisposed = false;
+    const loaderElement = root.querySelector<HTMLElement>(".more-photo-loader");
+
+    const setLoaderProgress = (progress: number) => {
+      loaderElement?.style.setProperty("--more-load-progress", progress.toFixed(3));
+    };
 
     const measureCards = () => {
       cardMetrics = cards.map((card) => ({
@@ -448,22 +503,6 @@ export function MorePhotoField() {
       });
     };
 
-    const preloadPreviewImage = (src: string) =>
-      new Promise<void>((resolve) => {
-        const loader = new window.Image();
-        const finish = () => {
-          loader.onload = null;
-          loader.onerror = null;
-          resolve();
-        };
-
-        loader.decoding = "async";
-        loader.onload = finish;
-        loader.onerror = finish;
-        loader.src = src;
-        if (loader.complete) finish();
-      });
-
     const openPreview = async (index: number) => {
       if (state.isPreviewOpen || !state.isTracking || loadingPreviewIndex >= 0) return;
       const card = cards[index];
@@ -472,7 +511,7 @@ export function MorePhotoField() {
       if (!card || !item || !image || gsap.getProperty(card, "autoAlpha") === 0) return;
 
       loadingPreviewIndex = index;
-      await preloadPreviewImage(item.src);
+      await preloadImage(item.src);
       if (loadingPreviewIndex !== index || state.isPreviewOpen || !state.isTracking) return;
 
       const sourceRect = card.getBoundingClientRect();
@@ -580,24 +619,20 @@ export function MorePhotoField() {
       const timeline = gsap.timeline({
         defaults: { ease: "power3.out" },
         delay: entryDelayRef.current ?? 0,
+        paused: true,
         onComplete: () => {
           state.isTracking = true;
           renderTrack();
         },
       });
 
+      setLoaderProgress(0);
       timeline
         .fromTo(
           ".more-photo-loader__mark",
           { autoAlpha: 0, y: 8 },
           { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" },
           0,
-        )
-        .fromTo(
-          ".more-photo-loader__line",
-          { scaleX: 0, transformOrigin: "50% 50%" },
-          { scaleX: 1, duration: 0.58, ease: "power2.inOut" },
-          0.08,
         )
         .fromTo(
           introCards,
@@ -678,6 +713,18 @@ export function MorePhotoField() {
           },
           1.9,
         );
+
+      void preloadImages(
+        trackPhotos.map((photo) => photo.src),
+        (progress) => {
+          if (isDisposed) return;
+          setLoaderProgress(progress);
+        },
+      ).then(() => {
+        if (isDisposed) return;
+        setLoaderProgress(1);
+        timeline.play(0);
+      });
     }, root);
 
     gsap.ticker.add(tick);
@@ -692,6 +739,7 @@ export function MorePhotoField() {
     });
 
     return () => {
+      isDisposed = true;
       cards.forEach((card) => {
         card.removeEventListener("click", onCardClick);
       });

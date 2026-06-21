@@ -4213,7 +4213,9 @@
   }
 
   .photo-footer {
-    min-height: 10svh;
+    min-height: 0;
+    height: 0;
+    overflow: hidden;
   }
 }
 

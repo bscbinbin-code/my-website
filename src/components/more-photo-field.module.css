@@ -95,6 +95,7 @@
 }
 
 :global(.more-photo-loader) {
+  --more-load-progress: 0;
   position: absolute;
   top: 50%;
   left: 50%;
@@ -116,10 +117,22 @@
 }
 
 :global(.more-photo-loader__line) {
+  position: relative;
   display: block;
   width: clamp(140px, 10.8vw, 210px);
   height: 3px;
+  overflow: hidden;
   background: rgb(24 24 24 / 0.18);
+}
+
+:global(.more-photo-loader__line)::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: rgb(24 24 24 / 0.82);
+  transform: scaleX(var(--more-load-progress));
+  transform-origin: 0 50%;
+  transition: transform 180ms ease;
 }
 
 :global(.more-photo-stage) {
