@@ -1161,11 +1161,13 @@ export function PhotographyPortfolio() {
         const finish = () => {
           if (done) return;
           done = true;
+          window.clearTimeout(timeout);
           video.removeEventListener("canplay", finish);
           video.removeEventListener("loadeddata", finish);
           video.removeEventListener("error", finish);
           resolve();
         };
+        const timeout = window.setTimeout(finish, 6500);
 
         video.addEventListener("canplay", finish, { once: true });
         video.addEventListener("loadeddata", finish, { once: true });
