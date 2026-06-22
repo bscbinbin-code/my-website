@@ -1030,7 +1030,7 @@
     left: 50%;
     top: calc(50% + 88px);
     z-index: 4;
-    display: none;
+    display: block;
     width: min(160px, 38vw);
     height: 1px;
     background: rgb(243 242 237 / 0.74);

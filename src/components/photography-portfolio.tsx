@@ -1161,17 +1161,16 @@ export function PhotographyPortfolio() {
         const finish = () => {
           if (done) return;
           done = true;
-          window.clearTimeout(timeout);
           video.removeEventListener("canplay", finish);
           video.removeEventListener("loadeddata", finish);
           video.removeEventListener("error", finish);
           resolve();
         };
-        const timeout = window.setTimeout(finish, 2200);
 
         video.addEventListener("canplay", finish, { once: true });
         video.addEventListener("loadeddata", finish, { once: true });
         video.addEventListener("error", finish, { once: true });
+        video.load();
         void video.play().catch(() => undefined);
       });
 
@@ -1241,7 +1240,6 @@ export function PhotographyPortfolio() {
           defaults: { ease: "power3.out" },
           onComplete: finishIntro,
         });
-        const fallbackExit = window.setTimeout(finishIntro, 9000);
 
         tl.to(introWord, {
           autoAlpha: 1,
@@ -1318,13 +1316,11 @@ export function PhotographyPortfolio() {
               display: "none",
               duration: 0.36,
               ease: "power2.out",
-              onComplete: () => window.clearTimeout(fallbackExit),
             },
             "<",
           );
 
         return () => {
-          window.clearTimeout(fallbackExit);
           document.body.style.overflow = previousBodyOverflow;
           document.documentElement.style.overflow = previousDocumentOverflow;
         };
@@ -2000,8 +1996,8 @@ export function PhotographyPortfolio() {
             <video
               ref={desktopHeroVideoRef}
               className="photo-hero-video photo-hero-video--desktop"
-              src="/portfolio/videos/web7.mp4"
-              poster={portfolioPhotos[0].src}
+              src="/portfolio/videos/web8.mp4"
+              poster="/portfolio/videos/web8-poster.jpg"
               autoPlay
               muted
               loop
@@ -2012,8 +2008,8 @@ export function PhotographyPortfolio() {
             <video
               ref={mobileHeroVideoRef}
               className="photo-hero-video photo-hero-video--mobile"
-              src="/portfolio/videos/web-6-phone2.mp4"
-              poster={portfolioPhotos[0].src}
+              src="/portfolio/videos/web7-phone2.mp4"
+              poster="/portfolio/videos/web7-phone2-poster.jpg"
               autoPlay
               muted
               loop
