@@ -413,6 +413,7 @@ export function PhotographyPortfolio() {
   const moreTransitionRef = useRef(false);
   const skipIntroRef = useRef(false);
   const introPlayedRef = useRef(false);
+  const introCompleteRef = useRef(false);
   const returnFinalRef = useRef(false);
   const scrollLockRef = useRef<{
     bodyTouchAction: string;
@@ -1093,6 +1094,7 @@ export function PhotographyPortfolio() {
 
     const playMobileHeroVideo = () => {
       if (!window.matchMedia("(max-width: 900px)").matches) return;
+      if (!introCompleteRef.current) return;
       video.muted = true;
       video.playsInline = true;
       void video.play().catch(() => undefined);
@@ -1173,8 +1175,15 @@ export function PhotographyPortfolio() {
         video.addEventListener("loadeddata", finish, { once: true });
         video.addEventListener("error", finish, { once: true });
         video.load();
-        void video.play().catch(() => undefined);
       });
+
+    const playCurrentHeroVideo = () => {
+      const video = window.matchMedia("(max-width: 900px)").matches ? mobileHeroVideoRef.current : desktopHeroVideoRef.current;
+      if (!video) return;
+      video.muted = true;
+      video.playsInline = true;
+      void video.play().catch(() => undefined);
+    };
 
     const waitForIntroReady = async () => {
       const isMobile = window.matchMedia("(max-width: 900px)").matches;
@@ -1201,6 +1210,7 @@ export function PhotographyPortfolio() {
         const previousDocumentOverflow = document.documentElement.style.overflow;
 
         const finishIntro = () => {
+          introCompleteRef.current = true;
           document.body.style.overflow = previousBodyOverflow;
           document.documentElement.style.overflow = previousDocumentOverflow;
           gsap.set(siteContent, { autoAlpha: 1, visibility: "visible" });
@@ -1208,6 +1218,7 @@ export function PhotographyPortfolio() {
         };
 
         if (reduceMotion) {
+          introCompleteRef.current = true;
           gsap.set(siteContent, { autoAlpha: 1 });
           gsap.set(intro, { autoAlpha: 0, display: "none" });
           return;
@@ -1256,6 +1267,7 @@ export function PhotographyPortfolio() {
             });
           })
           .to(introLoader, { scaleX: 1, autoAlpha: 0, duration: 0.18, ease: "power2.out" })
+          .call(playCurrentHeroVideo)
           .to(
             introWord,
             {
@@ -2000,7 +2012,6 @@ export function PhotographyPortfolio() {
               className="photo-hero-video photo-hero-video--desktop"
               src="/portfolio/videos/web8.mp4"
               poster="/portfolio/videos/web8-poster.jpg"
-              autoPlay
               muted
               loop
               playsInline
@@ -2012,11 +2023,10 @@ export function PhotographyPortfolio() {
               className="photo-hero-video photo-hero-video--mobile"
               src="/portfolio/videos/web7-phone2.mp4"
               poster="/portfolio/videos/web7-phone2-poster.jpg"
-              autoPlay
               muted
               loop
               playsInline
-              preload="auto"
+              preload="metadata"
               aria-label="BIN mobile portfolio hero video"
             />
             <HudCorners />
