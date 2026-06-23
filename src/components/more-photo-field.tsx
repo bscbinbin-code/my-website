@@ -526,23 +526,14 @@ export function MorePhotoField() {
       previewLayer.className = "more-photo-preview-layer";
       previewFigure = document.createElement("figure");
       previewFigure.className = "more-photo-preview";
-      const closeButton = document.createElement("button");
-      closeButton.className = "more-photo-preview-close";
-      closeButton.type = "button";
-      closeButton.textContent = "close";
       const previewImage = document.createElement("img");
       previewImage.src = item.src;
       previewImage.alt = "";
       previewFigure.append(previewImage);
-      previewLayer.append(previewFigure, closeButton);
+      previewLayer.append(previewFigure);
       root.append(previewLayer);
 
       previewLayer.addEventListener("click", closePreview);
-      closeButton.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        closePreview();
-      });
       previewFigure.addEventListener("click", (event) => {
         event.stopPropagation();
       });
